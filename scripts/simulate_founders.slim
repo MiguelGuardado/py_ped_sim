@@ -1,0 +1,58 @@
+
+//Recent Update: 10/23/2021
+//@author: Miguel Guardado Miguel.Guardado@ucsf.edu
+
+
+function(i)readIntTable(s$ path)
+{
+	l=readFile(path);
+	return(t(sapply(l, "asInteger(strsplit(applyValue));", simplify="matrix")));
+}
+
+
+initialize() {
+    //User sets the mutation and recombination rate in which to preform the simulations under
+	initializeMutationRate(recomb_rate);
+	initializeRecombinationRate(recomb_rate);
+
+	// only will use neutral mutations for these simulations
+	initializeMutationType("m1", 0.5, "f", 0.0);
+
+	suppressWarnings(T);
+
+	// g1 genomic element type: uses m1 for all mutations
+	initializeGenomicElementType("g1", m1, 1.0);
+
+	// user sets the lenght of the genome simulated
+	initializeGenomicElement(g1, 0, genome_length);
+
+    //This will load in the ID of founders to simulate their genome.
+	defineConstant("founder_list",readIntTable(file_path));
+}
+
+// create a population of founders to create genetic variance for.
+1 {
+//	founder_length=length(founder_list);
+
+	sim.addSubpop("p1",  n_indiv);
+	
+}
+
+1:1000000000 late(){
+
+if(sim.generation%gen_stop==0){
+    //Get an Iterable List of all the Individiuals inside the Burn In Simulations
+	P1Individuals=sim.subpopulations.individuals;
+
+	//Sample Individuals based on the length of the founders list + the Length of the single parents
+	SampleListLength=(length(founder_list)-1) + (founder_list[(length(founder_list)-1)]);
+	Founders=P1Individuals[0:(SampleListLength-1)];
+
+	//Create File Path names and output vcf file for Founders/SingleParents
+
+	Founders.genomes.outputVCF(filePath=output_filename);
+	sim.simulationFinished();
+
+} 
+}
+

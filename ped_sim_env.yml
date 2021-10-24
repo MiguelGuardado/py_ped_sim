@@ -1,0 +1,17 @@
+name: ped_sim
+channels:
+  - defaults
+  - bioconda
+  - conda-forge
+dependencies:
+  - python=3.8
+  - slim
+  - numpy
+  - networkx
+  - pandas
+  - matplotlib
+  - bcftools
+  - libdeflate=1.0
+  - seaborn
+  - tabix
+prefix: ped_sim

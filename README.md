@@ -219,6 +219,7 @@ The file is created internally inside ped_sim, and can be found as a python modu
 
 ### networkx_to_ped
 
+
 ##### Required input parameters:
 `-n` - networkx represented family pedigree
 `-o` - output prefix of the file
@@ -227,6 +228,7 @@ The file is created internally inside ped_sim, and can be found as a python modu
 {output_prefix}.ped - traditional pedigree file
 
 ### ped_to_networkx
+
 
 Required input parameters:
 
@@ -238,6 +240,8 @@ Required input parameters:
 {output_prefix}.nx - traditional networkx file
 
 ### check_founders
+
+
 ##### Required input parameters
 
 `-p` - Traditional family pedigree file

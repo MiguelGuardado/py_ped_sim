@@ -146,8 +146,10 @@ The file is created internally inside ped_sim, and can be found as a python modu
 
 ## Full parameters for each simulation
 
-###sim_founder 
-#####Required input parameters
+### sim_founder 
+This feature will initialize the founders genome by running an additional genetic simulation prior to the main
+family simulation. 
+##### Required input parameters 
 
 `-t sim_founder`
 
@@ -155,7 +157,8 @@ The file is created internally inside ped_sim, and can be found as a python modu
 
 `-o` - output prefix of the file
 
-##### Additional parameters
+##### Additional parameters  
+
 `-r` - recombination rate to use for founder initialization + simulations (default = 1e-8)
 
 `-mu` - mutation rate to use founder initialization + simulations (default = 1e-8)
@@ -167,16 +170,16 @@ The file is created internally inside ped_sim, and can be found as a python modu
 `-l` - length of the genome to simulation for founder burn in and pedigree simulation.
 
 `-s` - Seed number to use for the genetic simulation (default = 1)
-##### Output
 
+### load_founders
 
-###load_founders
+This simulation will initialize the founders genomes randomly from the inputted vcf file. 
 #####Required input parameters
 `-t load_founders`
 
 `-n` - networkx represented family pedigree
 
-`-v` - vcf file for founder genome initalization
+`-v` - vcf file for founder genome initialization
 
 `-o` - output prefix of the file
 
@@ -188,10 +191,14 @@ The file is created internally inside ped_sim, and can be found as a python modu
 `-mu` - mutation rate to use founder initialization + simulations (default = 1e-8)
 
 `-s` - Seed number to use for the genetic simulation (default = 1)
-##### Output
 
-###load_founders_exact
-#####Required input parameters:
+
+### load_founders_exact
+
+This simulation will initialize the founder genomes by providing an additional file to exactly map each founder to a 
+individual inputted from a vcf file. 
+
+##### Required input parameters:
 
 `-t load_founders_exact`
 
@@ -203,7 +210,7 @@ The file is created internally inside ped_sim, and can be found as a python modu
 `[vcf_sample_id, networkx_id]`
 
 `-o` - output prefix of the file
-##### Output
+
 
 ##### Additional parameters
 `-f` - fasta file for the inputted vcf file, this will activate nucleotide specifc simulations
@@ -214,10 +221,9 @@ The file is created internally inside ped_sim, and can be found as a python modu
 
 `-s` - Seed number to use for the genetic simulation (default = 1)
 
-##### Output
-
 
 ### networkx_to_ped
+This feature will convert networkx represented pedigree files into traditional family pedigrees files. 
 
 ##### Required input parameters:
 `-n` - networkx represented family pedigree
@@ -227,6 +233,7 @@ The file is created internally inside ped_sim, and can be found as a python modu
 {output_prefix}.ped - traditional pedigree file
 
 ### ped_to_networkx
+This feature will convert traditional pedigree files into networkx represented family pedigrees. 
 
 Required input parameters:
 
@@ -238,6 +245,8 @@ Required input parameters:
 {output_prefix}.nx - traditional networkx file
 
 ### check_founders
+This feature is used for checking the number of explicit, implicit, and descendants created in the simulation.
+
 ##### Required input parameters
 
 `-p` - Traditional family pedigree file

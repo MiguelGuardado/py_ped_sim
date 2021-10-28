@@ -146,10 +146,10 @@ The file is created internally inside ped_sim, and can be found as a python modu
 
 ## Full parameters for each simulation
 
-###sim_founder 
+### sim_founder <br />
 This feature will initialize the founders genome by running an additional genetic simulation prior to the main
 family simulation. 
-#####Required input parameters
+##### Required input parameters <br />
 
 `-t sim_founder`
 
@@ -157,7 +157,8 @@ family simulation.
 
 `-o` - output prefix of the file
 
-##### Additional parameters
+##### Additional parameters  
+<br />
 `-r` - recombination rate to use for founder initialization + simulations (default = 1e-8)
 
 `-mu` - mutation rate to use founder initialization + simulations (default = 1e-8)
@@ -170,7 +171,8 @@ family simulation.
 
 `-s` - Seed number to use for the genetic simulation (default = 1)
 
-###load_founders
+### load_founders
+<br />
 This simulation will initialize the founders genomes randomly from the inputted vcf file. 
 #####Required input parameters
 `-t load_founders`
@@ -191,10 +193,12 @@ This simulation will initialize the founders genomes randomly from the inputted 
 `-s` - Seed number to use for the genetic simulation (default = 1)
 
 
-###load_founders_exact
+### load_founders_exact
+<br />
 This simulation will initialize the founder genomes by providing an additional file to exactly map each founder to a 
 individual inputted from a vcf file. 
-#####Required input parameters:
+<br />
+##### Required input parameters:
 
 `-t load_founders_exact`
 

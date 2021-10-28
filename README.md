@@ -46,7 +46,8 @@ number of founders, num of implicit founders, and num of descendants inside the 
 ### Basic Definitions
 Founders - Founders are defined as individuals who do not have any known ascendants. Explicit founders are classified as known
 founders who are defined by directed edges in the graph node based pedigree. Implicit founders are defined 
-in the case of incomplete pedigrees, when only on one parent is known in the pedigree. My software is able to handle unknown parents.
+in the case of incomplete pedigrees, when only on one parent is known for a descendants. Since our simulations
+need both parents to simulate the offspring, we refer to the missing parent as an implicit founder. My software is able to handle unknown parents.
 
 ## ped_sim tutorial
 ### Install Conda Environment
@@ -216,7 +217,7 @@ The file is created internally inside ped_sim, and can be found as a python modu
 ##### Output
 
 
-###networkx_to_ped
+### networkx_to_ped
 
 ##### Required input parameters:
 `-n` - networkx represented family pedigree
@@ -225,7 +226,7 @@ The file is created internally inside ped_sim, and can be found as a python modu
 ##### Output
 {output_prefix}.ped - traditional pedigree file
 
-###ped_to_networkx
+### ped_to_networkx
 
 Required input parameters:
 
@@ -236,14 +237,14 @@ Required input parameters:
 ##### Files that get outputted
 {output_prefix}.nx - traditional networkx file
 
-###check_founders
+### check_founders
 ##### Required input parameters
 
 `-p` - Traditional family pedigree file
 
 output of this function is outputted on the terminal command line
 
-###convert_pedigree
+### convert_pedigree
 Internal debugging function that can be used to convert networkx represented family pedigree to a slim readable family pedigree.
 
 Required input parameters:

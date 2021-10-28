@@ -172,7 +172,7 @@ family simulation.
 `-s` - Seed number to use for the genetic simulation (default = 1)
 
 ### load_founders
-<br />
+
 This simulation will initialize the founders genomes randomly from the inputted vcf file. 
 #####Required input parameters
 `-t load_founders`

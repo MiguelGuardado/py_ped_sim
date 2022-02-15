@@ -1,0 +1,14 @@
+README.md
+run_ped_sim.py
+setup.py
+ped_slim.egg-info/PKG-INFO
+ped_slim.egg-info/SOURCES.txt
+ped_slim.egg-info/dependency_links.txt
+ped_slim.egg-info/not-zip-safe
+ped_slim.egg-info/top_level.txt
+scripts/__init__.py
+scripts/convert_pedigree.py
+scripts/load_founders.py
+scripts/load_founders_exact.py
+scripts/sim_founders.py
+scripts/util.py

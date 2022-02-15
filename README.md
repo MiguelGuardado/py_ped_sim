@@ -66,6 +66,7 @@ Once you clone the repo to you directory, create and load the conda environment 
 cd ped_sim
 conda env create -f ped_sim_env.yml
 conda activate ped_sim
+python setup.py install
 
 #check pipeline interface is working though run_ped_sim.py
 python run_ped_sim.py -h

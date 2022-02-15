@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/Users/mguardado1/Downloads/ENTER/envs/ped_sim/bin/python
 # -*- coding: utf-8 -*-
 """
 Recent Update: 02/15/2022
@@ -46,7 +46,7 @@ def load_args():
     parser.add_argument('-s', '--seed_number', default=1, type=int)
     parser.add_argument('-full_output', default=False)
 
-    return parser.parse_args()
+    return (parser.parse_args())
 
 
 def raise_filepath_error(filepath):
@@ -89,11 +89,11 @@ def check_params():
 #   We need to simulate the founders genomes, so this will check if SLIM input parameters are in the correct format
     if args.type_of_sim == 'sim_founders':
 
-        if not os.path.isfile(args.networkx_file):
+        if(not os.path.isfile(args.networkx_file)):
             raise_filepath_error(args.networkx_file)
-        if not check_exp_input(args.recomb_rate):
+        if (not check_exp_input(args.recomb_rate)):
             raise_filepath_error(args.recomb_rate)
-        if not check_exp_input(args.mutation_rate):
+        if (not check_exp_input(args.mutation_rate)):
             raise_filepath_error(args.mutation_rate)
         #Convert rel path to full path
         args.networkx_file = os.path.abspath(args.networkx_file)

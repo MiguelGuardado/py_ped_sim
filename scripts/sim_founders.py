@@ -8,7 +8,7 @@ Recent Update: 10/23/2021
 import subprocess
 import numpy as np
 from scripts import convert_pedigree
-
+from scripts import util
 
 class sim_founders:
     """
@@ -37,7 +37,7 @@ class sim_founders:
         self.recomb_rate = recomb_rate
         self.seed_number = seed_number
         self.sim_founders_genomes_filepath = ""
-        self.output_filename = ""
+        self.output_vcf = ""
         self.run_simulation()
 
     def split_founders(self, founder_vcf_filepath, num_explicit, num_implicit):
@@ -122,7 +122,7 @@ class sim_founders:
                         f' -s {int(self.seed_number)}'
                         f' -d output_filename="{self.sim_founders_genomes_filepath}" scripts/simulate_founders.slim &> /dev/null'],
                        shell=True)
-        self.output_filename = f"'{self.output_prefix}_genomes.vcf'"
+        self.output_vcf = f"'{self.output_prefix}_genomes.vcf'"
 
         if (ped_converter.num_implicit > 0):
 
@@ -140,7 +140,7 @@ class sim_founders:
                             f' -d mu_rate="{self.mutation_rate}"'
                             f' -d recomb_rate="{self.recomb_rate}"'
                             f' -s {self.seed_number}'
-                            f' -d output_filename="{self.output_filename}" scripts/simulate_pedigree.slim &> /dev/null'], shell=True)
+                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim &> /dev/null'], shell=True)
 
             #
             rm_cmd = f'rm {ped_converter.slim_filepath} {self.explicit_founders_vcf_filepath} ' \
@@ -157,11 +157,12 @@ class sim_founders:
                             f' -d mu_rate="{self.mutation_rate}"'
                             f' -d recomb_rate="{self.recomb_rate}"'
                             f' -s {self.seed_number}'
-                            f' -d output_filename="{self.output_filename}" scripts/simulate_pedigree.slim &> /dev/null'], shell=True)
+                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim &> /dev/null'], shell=True)
 
             rm_cmd = f'rm {ped_converter.slim_filepath} {self.sim_founders_genomes_filepath} '
             subprocess.run([rm_cmd], shell=True)
 
+        util.update_vcf_header(self.output_vcf, self.networkx_file)
 '''
 list of files that get deleted, and the variable/process they are attached to.
 {output_prefix}_explicit_founders.txt - random sample for explicit founders

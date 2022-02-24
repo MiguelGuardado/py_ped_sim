@@ -103,12 +103,12 @@ def check_params():
             raise_filepath_error(args.vcf_file)
         if not os.path.isfile(args.networkx_file):
             raise_filepath_error(args.networkx_file)
-        if not os.path.isfile(args.fasta_file) and args.fasta_file is not None:
-            raise_filepath_error(args.fasta_file)
 
         args.vcf_file = os.path.abspath(args.vcf_file)
         args.networkx_file = os.path.abspath(args.networkx_file)
         if args.fasta_file is not None:
+            if not os.path.isfile(args.fasta_file):
+                raise_filepath_error(args.fasta_file)
             args.fasta_file = os.path.abspath(args.fasta_file)
 
 
@@ -119,8 +119,6 @@ def check_params():
             raise_filepath_error(args.networkx_file)
         if not os.path.isfile(args.exact_founder_id):
             raise_filepath_error(args.exact_founder_id)
-        if not os.path.isfile(args.fasta_file) and args.fasta_file is not None:
-            raise_filepath_error("-fasta_file")
 
         # Correct rel path to full path
         args.vcf_file = os.path.abspath(f"{args.vcf_file}")
@@ -128,6 +126,8 @@ def check_params():
         args.output_prefix = os.path.abspath(f"{args.output_prefix}")
         args.exact_founder_id = os.path.abspath(f"{args.exact_founder_id}")
         if args.fasta_file is not None:
+            if not os.path.isfile(args.fasta_file):
+                raise_filepath_error("-fasta_file")
             args.fasta_file = os.path.abspath(args.fasta_file)
 
     elif args.type_of_sim == 'ped_to_networkx':

@@ -103,7 +103,7 @@ can be initialized. Reminder that this will assign the individuals in the vcf fi
 ### load_founders
 
 ```bash
-`python ../run_ped_sim.py -t load_founders -n test_fam.nx -v load_founders/lwk_1kg_toydata.vcf -o testfam_load`
+python ../run_ped_sim.py -t load_founders -n test_fam.nx -v load_founders/lwk_1kg_toydata.vcf -o testfam_load
 ```
 
 ### load_founders nucleotide explicit simulation
@@ -263,7 +263,6 @@ Required input parameters:
 
 ##### Files that get outputted
 {output_prefix}_ - traditional networkx file
-
 
 
 

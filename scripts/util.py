@@ -6,6 +6,48 @@ Recent Update: 10/23/2021
 """
 import networkx as nx
 import pandas as pd
+import numpy as np
+import subprocess
+
+
+def update_vcf_header(vcf_filepath, fam_graph):
+    """
+    This function will take the simulated genomes(vcf file) from our software, and utilizes bcftools to
+    reindex the file to the list of IDs used in the family pedigree graph. My software outputs the individuals genomes
+    as the indexes of thier ID's from lowest to highest. Utilizing bcftools reheader function we rewrite the
+    node id as a list of individual
+    :param vcf_filepath: output vcf file path from ped_slim.
+    :param sorted_fam_list: sorted list of individual ID based on family pedigree graph.
+    :return: vcf file
+
+    comment 02/24/2022:  Currently, bcftools does not rewrite a vcf file in place, instead we have to create a temporary
+    file, remove the original file, and then rename the new file the original files names. Could be a big cost on
+    larger datasets. Meaning
+    """
+    #  First we check if the length of the list inputted is the correct length found in the vcf file
+
+    find_length_cmd = f"bcftools query -l {vcf_filepath} | wc -l"
+    process = subprocess.Popen([find_length_cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    vcf_indiv_length, err = process.communicate()
+    vcf_indiv_length = int(vcf_indiv_length.decode('ascii'))
+
+    di_family = nx.read_edgelist(fam_graph, create_using=nx.DiGraph())
+
+    # Create a numpy array of the list of nodes (individuals) in our family pedigree.
+    fam_list = np.array(di_family.nodes)
+    fam_list = np.sort(fam_list.astype(int)).astype(str)
+
+    if len(fam_list) == vcf_indiv_length:
+        np.savetxt('sorted_sampleid.txt', fam_list, fmt='%s')
+
+        reheader_cmd = f'bcftools reheader -s sorted_sampleid.txt -o tmp.vcf {vcf_filepath}'
+        subprocess.run([reheader_cmd], shell=True)
+
+        rm_cmd = f'rm sorted_sampleid.txt {vcf_filepath}'
+        subprocess.run([rm_cmd], shell=True)
+
+        mv_cmd = f'mv tmp.vcf {vcf_filepath}'
+        subprocess.run([mv_cmd],shell=True)
 
 
 def convert_networkx_to_ped(networkx_file, output_prefix):

@@ -195,7 +195,7 @@ class load_founders_exact:
                                 f' -d mu_rate="{self.mutation_rate}"'
                                 f' -d recomb_rate="{self.recomb_rate}"'
                                 f' -s {self.seed_number}'
-                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim &> /dev/null'],
+                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'],
                                shell=True)
         else:
             self.fasta_file = f"'{self.fasta_file}'"
@@ -210,7 +210,7 @@ class load_founders_exact:
                                 f' -d recomb_rate="{self.recomb_rate}"'
                                 f' -s {self.seed_number}'
                                 f' -d fasta_file="{self.fasta_file}"'
-                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim &> /dev/null'], shell=True)
+                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'], shell=True)
             else:
                 self.founder_genomes = f"'{self.founder_genomes}'"
                 subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
@@ -221,10 +221,10 @@ class load_founders_exact:
                                 f' -d recomb_rate="{self.recomb_rate}"'
                                 f' -s {self.seed_number}'
                                 f' -d fasta_file="{self.fasta_file}"'
-                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim &> /dev/null'],
+                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'],
                                shell=True)
 
-
+        util.update_vcf_header(self.output_vcf, self.networkx_file)
         #Now that the simulation is done, we will delete all files not desired by user, feel free to undelete these
         # if you want these outputs.
 

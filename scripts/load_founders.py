@@ -6,12 +6,10 @@ Recent Update: 10/23/2021
 """
 
 import numpy as np
-import os
-import scripts
 import subprocess
 from scripts import convert_pedigree
 from scripts import util
-import os, fnmatch
+
 
 class load_founders:
 
@@ -50,6 +48,7 @@ class load_founders:
         self.fasta_file = fasta_file
         self.is_nuc_seq = (self.fasta_file is None)
         self.run_simulation()
+
 
 
     def check_vcf(self):
@@ -224,7 +223,7 @@ class load_founders:
                                                           output_prefix=self.output_prefix)
 
 #       double quote syntax is required for SLiM to have command line input parameters
-        self.out_vcf = f"'{self.output_prefix}_genomes.vcf'"
+        self.output_vcf = f"'{self.output_prefix}_genomes.vcf'"
         ped_converter.slim_filepath = f"'{ped_converter.slim_filepath}'"
         ped_converter.founder_filepath = f"'{ped_converter.founder_filepath}'"
 
@@ -245,7 +244,7 @@ class load_founders:
                                 f' -d mu_rate="{self.mutation_rate}"'
                                 f' -d recomb_rate="{self.recomb_rate}"'
                                 f' -s {self.seed_number}'
-                                f' -d output_filename="{self.out_vcf}" scripts/simulate_pedigree.slim &> /dev/null'], shell=True)
+                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'], shell=True)
             else:
 
                 self.founder_genomes = f"'{self.founder_genomes}'"
@@ -256,7 +255,7 @@ class load_founders:
                                 f' -d mu_rate="{self.mutation_rate}"'
                                 f' -d recomb_rate="{self.recomb_rate}"'
                                 f' -s {self.seed_number}'
-                                f' -d output_filename="{self.out_vcf}" scripts/simulate_pedigree.slim &> /dev/null'],
+                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'],
                                shell=True)
         else:
             self.fasta_file = f"'{self.fasta_file}'"
@@ -271,7 +270,7 @@ class load_founders:
                                 f' -d recomb_rate="{self.recomb_rate}"'
                                 f' -s {self.seed_number}'
                                 f' -d fasta_file="{self.fasta_file}"'
-                                f' -d output_filename="{self.out_vcf}" scripts/simulate_pedigree_wnuc.slim &> /dev/null'], shell=True)
+                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'], shell=True)
             else:
                 self.founder_genomes = f"'{self.founder_genomes}'"
                 subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
@@ -282,11 +281,14 @@ class load_founders:
                                 f' -d recomb_rate="{self.recomb_rate}"'
                                 f' -s {self.seed_number}'
                                 f' -d fasta_file="{self.fasta_file}"'
-                                f' -d output_filename="{self.out_vcf}" scripts/simulate_pedigree_wnuc.slim &> /dev/null'],
+                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'],
                                shell=True)
+        # Now that the simulation is complete, this will reindex the vcf files sample ID to match the
+        # id found in the family pedigree graph
+        util.update_vcf_header(self.output_vcf, self.networkx_file)
 
 
-        #Now that the simulation is done, we will delete all files not desired by user, feel free to undelete these
+        #  Now that the simulation is done, we will delete all files not desired by user, feel free to undelete these
         # if you want these outputs.
 
         rm_cmd = f"rm {self.founder_genomes}* {ped_converter.founder_filepath} {self.output_prefix}_founder_genomes.vcf" \

@@ -148,6 +148,7 @@ def check_params():
     elif args.type_of_sim == 'convert_pedigree':
         if not os.path.isfile(args.networkx_file):
             raise_filepath_error(args.networkx_file)
+        args.networkx_file = os.path.abspath(args.networkx_file)
 
 
 

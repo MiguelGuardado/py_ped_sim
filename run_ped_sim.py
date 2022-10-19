@@ -34,6 +34,7 @@ def load_args():
     parser.add_argument('-t', '--type_of_sim', default=0, type=str, required=True)
     parser.add_argument('-v', '--vcf_file', type=str)
     parser.add_argument('-p', '--ped_file', type=str)
+    parser.add_argument('-pr', '--profiles_file', type=str)
     parser.add_argument('-n', '--networkx_file', type=str)
     parser.add_argument('-f', '--fasta_file', type=str)
     parser.add_argument('-e', '--exact_founder_id', type=str)
@@ -138,6 +139,9 @@ def check_params():
     elif args.type_of_sim == 'networkx_to_ped':
         if not os.path.isfile(args.networkx_file):
             raise_filepath_error(args.networkx_file)
+
+        if args.profiles_file is not None and os.path.isfile(args.profiles_file):
+            args.profiles_file = os.path.abspath(f"{args.profiles_file}")
         args.networkx_file = os.path.abspath(f"{args.networkx_file}")
 
     elif args.type_of_sim == 'check_founders':
@@ -213,7 +217,10 @@ if __name__ == '__main__':
         util.convert_ped_to_networkx(ped_file=args.ped_file, output_prefix=args.output_prefix)
 
     elif args.type_of_sim == 'networkx_to_ped':
-        util.convert_networkx_to_ped(networkx_file=args.networkx_file, output_prefix=args.output_prefix)
+        if args.profiles_file is not None:
+            util.convert_networkx_to_ped_wprofiles(networkx_file=args.networkx_file, output_prefix=args.output_prefix, profiles_file=args.profiles_file)
+        else:
+            util.convert_networkx_to_ped(networkx_file=args.networkx_file, output_prefix=args.output_prefix)
 
     elif args.type_of_sim == 'check_founders':
         util.find_founders(networkx_file=args.networkx_file, shell_output=True)

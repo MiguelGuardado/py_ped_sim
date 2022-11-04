@@ -53,25 +53,30 @@ def update_vcf_header(vcf_filepath, fam_graph):
 def convert_networkx_to_ped_wprofiles(networkx_file, output_prefix, profiles_file):
     """
     This function will be used to convert a networkx based family pedigree into a .ped file that is often used for other
-    tools such as plink. This function will take in an additional file for individuals sex profiles.
+    tools such as plink. This function will take in an additional file for individuals sex and birth year  profiles.
 
     :param networkx_file: File path where the networkx graph is found.
+    :param networkx_file: File path where the profiles file is found
     :param output_prefix: Directory  where you want to output the file in
 
     :return: will return a ped file of the networkx graph that was inputted in.
     """
     sex_map = {'male':1, 'female':2}
 
+
     ped_dir_edgelist = nx.read_edgelist(networkx_file, create_using=nx.DiGraph())
 
     ped_undir_edgelist = nx.read_edgelist(networkx_file, create_using=nx.Graph())
     sub_fams = list(nx.connected_components(ped_undir_edgelist))
 
-    if profiles_file is not None:
-        profiles = pd.read_csv(profiles_file, sep='\t')
-        print(profiles)
+    # we will check of the profiles:
+    profiles = pd.read_csv(profiles_file, sep='\t')
 
-    fam_id=1
+    if len(np.intersect1d(profiles.columns, ['Sex', 'Birth_Year'])) != 2:
+        print("profiles entered do not contain 'Birth_Year' and 'Sex', please check profile file")
+        exit(0)
+
+    fam_id = 1
 
     # Load in this as a pandas dataframe so you can add a header to the text file!
     for sub_family in sub_fams:
@@ -82,29 +87,32 @@ def convert_networkx_to_ped_wprofiles(networkx_file, output_prefix, profiles_fil
         for indiv in ped_dir_edgelist.sub_fam_graph:
             sex = profiles[profiles['ID'] == int(indiv)]['Sex'].to_list()[0]
             sex = sex_map[sex]
+
+            birthyear = profiles[profiles['ID'] == int(indiv)]['Birth_Year'].to_list()[0]
+
             cur_node_pred=list(ped_dir_edgelist.sub_fam_graph.predecessors(indiv))
             if len(cur_node_pred)==2:
-                line = [fam_id,int(indiv),int(cur_node_pred[0]), int(cur_node_pred[1]), sex,-9]
+                line = [fam_id, int(indiv),int(cur_node_pred[0]), int(cur_node_pred[1]), sex,-9, birthyear]
                 ped_file.append(line)
 
             if len(cur_node_pred)==1:
-                line = [fam_id,int(indiv),int(cur_node_pred[0]), 0, sex,-9]
+                line = [fam_id, int(indiv), int(cur_node_pred[0]), 0, sex,-9, birthyear]
                 ped_file.append(line)
 
             if len(cur_node_pred)==0:
-                line = [fam_id,int(indiv), 0, 0, sex,-9]
+                line = [fam_id, int(indiv), 0, 0, sex,-9, birthyear]
                 ped_file.append(line)
 
         fam_id+=1
 
     ped_filepath = output_prefix + ".ped"
 
-    column_names=['#Family_ID',"Indiv_ID","Paternal_ID","Maternal_ID","Sex","Phenotype"]
+    column_names=['#Family_ID', "Indiv_ID", "Paternal_ID", "Maternal_ID", "Sex", "Phenotype", "Birth_Year"]
 
     ped_file = pd.DataFrame(ped_file,columns=column_names)
-    ped_file.sort_values(by=['Indiv_ID'],inplace=True)
+    ped_file.sort_values(by=['Indiv_ID'], inplace=True)
 
-    ped_file.to_csv(ped_filepath, sep=" ",index=False)
+    ped_file.to_csv(ped_filepath, sep=" ", index=False, header=False)
 
 
 def convert_networkx_to_ped(networkx_file, output_prefix):
@@ -153,7 +161,7 @@ def convert_networkx_to_ped(networkx_file, output_prefix):
     ped_file = pd.DataFrame(ped_file,columns=column_names)
     ped_file.sort_values(by=['Indiv_ID'],inplace=True)
 
-    ped_file.to_csv(ped_filepath, sep=" ", index=False)
+    ped_file.to_csv(ped_filepath, sep=" ", index=False, header=False)
 
 
 def convert_ped_to_networkx(ped_file, output_prefix):

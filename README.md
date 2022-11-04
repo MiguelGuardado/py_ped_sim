@@ -15,6 +15,8 @@ directed graph, you can additionally convert a standard ped file to a networkx b
  
 **This software is still under development**, please feel free to reach out to me for any questions or suggestions 
 I can create to make this code more useable! Miguel.Guardado@ucsf.edu
+
+
 ### Types of simulations preformed
 The creation of this software is centered around founder genome initialization, and pedigree conversion. Most family pedigrees 
 do not come with the generation of each individual explicitly. The first part of each of the 3 simulations comes with converting the 
@@ -135,7 +137,8 @@ This function will convert a networkx pedigree (.nx) to a traditional pedigree (
 ```bash
 python ../run_ped_sim.py -t networkx_to_ped -n test_fam.nx -o test_fam
 ```
-## Output
+## Output of Genetic Simulator 
+Simulated genomes get outputted as VCF files. Simulated genomes come from `sim_pedigree` and `sim_pedigree_exact` features. 
 The user will specify the output prefix of the simulations results via the `-o` user parameter.
 
 `_genomes.vcf` - Genetic file of the family simulation. Input is presented as VCF format, information about vcf_file can
@@ -230,6 +233,9 @@ This feature will convert networkx represented pedigree files into traditional f
 `-n` - networkx represented family pedigree
 `-o` - output prefix of the file
 
+##### Additional parameters
+`-pr` - networkx profiles to add to ped file. Only profiles supported are for birth year and sex.
+
 ##### Output
 {output_prefix}.ped - traditional pedigree file
 
@@ -260,10 +266,6 @@ Internal debugging function that can be used to convert networkx represented fam
 Required input parameters:
 `-n` - networkx represented family pedigree
 `-o` - output prefix of the file
-
-##### Files that get outputted
-{output_prefix}_ - traditional networkx file
-
 
 
 

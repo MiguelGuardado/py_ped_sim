@@ -268,5 +268,4 @@ class load_founders:
         #  if you want these outputs.
         rm_cmd = f"rm {self.founder_genomes}* {ped_converter.founder_filepath}" \
                  f" {self.explicit_founders_vcf_filepath} {self.implicit_founders_vcf_filepath}"
-
-        # subprocess.run([rm_cmd], shell=True)
+        subprocess.run([rm_cmd], shell=True)

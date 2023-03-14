@@ -7,6 +7,8 @@ Recent Update: 02/15/2022
 
 import argparse
 import os
+import subprocess
+
 from scripts import convert_pedigree
 from scripts import sim_founders
 from scripts import util
@@ -159,6 +161,13 @@ def check_params():
             raise_filepath_error(args.networkx_file)
         args.networkx_file = os.path.abspath(args.networkx_file)
 
+    elif args.type_of_sim == 'enur_fam':
+        if not os.path.isfile(args.networkx_file):
+            raise_filepath_error(args.networkx_file)
+        args.networkx_file = os.path.abspath(args.networkx_file)
+
+
+
 
 
 #MAIN CLASS: this is where the ped_sim code starts.
@@ -235,3 +244,7 @@ if __name__ == '__main__':
 
     elif args.type_of_sim == 'convert_pedigree':
         convert_pedigree.convert_pedigree(ped_filepath=args.networkx_file, output_prefix=args.output_prefix)
+
+    elif args.type_of_sim == 'enur_fam':
+        enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file}'
+        subprocess.run([enur_fam_cmd], shell=True)

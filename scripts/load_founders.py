@@ -67,26 +67,32 @@ class load_founders:
 
 
     def extract_founders(self):
+        '''
+        This seems to be screwing up the parrallelization
+        :return:
+        '''
         """
         Internal function, this will extract the list of sample id to be used for the founders genome,
         load_founder will assign the founders randomly across the vcf file.
         :return:
         self.founder_genomes - initally assigned to the sample subset of the vcf file that is inputted by the user.
         """
-        sample_query_cmd = f"bcftools query -l {self.vcf_file} > user_vcf_sample_id.txt"
+        self.output_prefix
+        sample_query_cmd = f"bcftools query -l {self.vcf_file} > {self.output_prefix}_sample_id.txt"
         subprocess.run([sample_query_cmd], shell=True)
 
         #  Load in generated list into python
-        present_sampleid = np.loadtxt('user_vcf_sample_id.txt', dtype='str')
+        present_sampleid = np.loadtxt(f'{self.output_prefix}_sample_id.txt', dtype='str')
         founder_samples = np.random.choice(present_sampleid, self.num_founder, replace=False)
-        np.savetxt('founder_sampleid.txt', founder_samples, fmt='%s')
-        #
+        np.savetxt(f'{self.output_prefix}_founder_sampleid.txt', founder_samples, fmt='%s')
+
 
         self.founder_genomes = f'{self.output_prefix}_founder_genomes.vcf'
-        subset_vcf_cmd = f'bcftools view -S founder_sampleid.txt {self.vcf_file} -O v -o {self.founder_genomes}'
+        subset_vcf_cmd = f'bcftools view -S {self.output_prefix}_founder_sampleid.txt {self.vcf_file} ' \
+                         f'-O v -o {self.founder_genomes}'
         subprocess.run([subset_vcf_cmd], shell=True)
 
-        rm_cmd = "rm user_vcf_sample_id.txt founder_sampleid.txt"
+        rm_cmd = f"rm {self.output_prefix}_founder_sampleid.txt {self.output_prefix}_sample_id.txt"
         subprocess.run([rm_cmd], shell=True)
 
     def split_founders(self, founder_vcf_filepath, num_explicit, num_implicit):
@@ -152,7 +158,6 @@ class load_founders:
         subprocess.run([rm_cmd], shell=True)
 
 
-
     def find_genome_length(self):
         """
         Internal function inside the class to initalize self.genome_length based the last position found inside the
@@ -172,8 +177,6 @@ class load_founders:
 
 
 
-
-
     def run_simulation(self):
         """
         Main function for the class. Where all the magic happens.
@@ -181,10 +184,10 @@ class load_founders:
         #  This will check the user inputted vcf file.
         self.check_vcf()
 
+        # This function will identify the individuals in the vcf file to use as founders genomes
         self.extract_founders()
 
-        #self.filter_vcf_for_slim()
-
+        # This will help initialize the genome length from the vcf file.
         self.find_genome_length()
 
         #call on convert_pedigree object to convert networkx pedigree into a SLiM readable readable
@@ -205,6 +208,7 @@ class load_founders:
             if (ped_converter.num_implicit > 0):
 
                 self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
+
                 subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
                                 f' -d founder_filepath="{ped_converter.founder_filepath}"'
                                 f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'

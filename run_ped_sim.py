@@ -10,7 +10,6 @@ import os
 import subprocess
 
 from scripts import convert_pedigree
-from scripts import sim_founders
 from scripts import util
 from scripts import load_founders
 from scripts import load_founders_exact
@@ -19,7 +18,7 @@ parser = argparse.ArgumentParser()
 
 def load_args():
     """
-    This function is used to read in and initalize the user parameters
+    This function is used to read in and initialize the user parameters
     entered from the command lines. Some of these parameters are predefined
     for the founders burn in.
     This wont check the parameters but just reads them in. Each of the individual python modules
@@ -53,7 +52,7 @@ def load_args():
 
 
 def raise_filepath_error(filepath):
-    raise Exception(f"Filepath not found: '{filepath}' ")
+    raise Exception(f"Filepath not found: '{filepath}' s")
 
 def check_exp_input(exp_expression):
     """
@@ -88,27 +87,34 @@ def check_params():
     We will additionally find the absolute path of each file prior to running the simulations so we dont have to
     reference the users local directory .
     """
-    args.output_prefix = os.path.abspath(f"{args.output_prefix}")
+    if args.output_prefix is not None:
+        args.output_prefix = os.path.abspath(f"{args.output_prefix}")
+
 #   We need to simulate the founders genomes, so this will check if SLIM input parameters are in the correct format
     if args.type_of_sim == 'sim_founders':
 
         if not os.path.isfile(args.networkx_file):
             raise_filepath_error(args.networkx_file)
+
         if not check_exp_input(args.recomb_rate):
             raise_filepath_error(args.recomb_rate)
+
         if not check_exp_input(args.mutation_rate):
             raise_filepath_error(args.mutation_rate)
         #Convert rel path to full path
         args.networkx_file = os.path.abspath(args.networkx_file)
 
     elif args.type_of_sim == 'load_founders':
+
         if not os.path.isfile(args.vcf_file):
             raise_filepath_error(args.vcf_file)
+
         if not os.path.isfile(args.networkx_file):
             raise_filepath_error(args.networkx_file)
 
         args.vcf_file = os.path.abspath(args.vcf_file)
         args.networkx_file = os.path.abspath(args.networkx_file)
+
         if args.fasta_file is not None:
             if not os.path.isfile(args.fasta_file):
                 raise_filepath_error(args.fasta_file)
@@ -177,6 +183,7 @@ if __name__ == '__main__':
 #   Load in the users arguments
     args = load_args()
 
+
 #   Check in the user's arguments are valid.
     check_params()
 
@@ -184,20 +191,12 @@ if __name__ == '__main__':
     ped_sim_dir = os.path.dirname(os.path.abspath(__file__))
     os.chdir(ped_sim_dir)
 
-#   Determine what function the user wants preformed, currently there are 5 options supported
+#   Run feature provided by the user in the -t parameter, will exit if user inputs non supported feature.'
     if args.type_of_sim == 'sim_founders': # Simulate founders genomes
-
-        sim_founders.sim_founders(
-            networkx_file=args.networkx_file,
-            cur_dir=cur_user_dir,
-            out_prefix=args.output_prefix,
-            genome_length=args.genome_length,
-            mutation_rate=args.mutation_rate,
-            recomb_rate=args.recomb_rate,
-            seed_number=args.seed_number,
-            num_of_indivs=args.number_of_indivs,
-            num_of_gens=args.number_of_gens
-        )
+        # shell_cmd = f'python scripts/sim_fam_msprime.py -n {args.} '
+        ## Need to update this sim founder script
+        ## -n (n_founder), -Ne (population_size), -l(genome_length) , -s(seed_num), -o(output_vcf), -mu, -r
+        exit('sim founder under development, dont look here!!')
 
 
     elif args.type_of_sim == 'load_founders':
@@ -232,7 +231,8 @@ if __name__ == '__main__':
 
     elif args.type_of_sim == 'networkx_to_ped':
         if args.profiles_file is not None:
-            util.convert_networkx_to_ped_wprofiles(networkx_file=args.networkx_file, output_prefix=args.output_prefix, profiles_file=args.profiles_file)
+            util.convert_networkx_to_ped_wprofiles(networkx_file=args.networkx_file,
+                                                   output_prefix=args.output_prefix, profiles_file=args.profiles_file)
         else:
             util.convert_networkx_to_ped(networkx_file=args.networkx_file, output_prefix=args.output_prefix)
 
@@ -246,5 +246,8 @@ if __name__ == '__main__':
         convert_pedigree.convert_pedigree(ped_filepath=args.networkx_file, output_prefix=args.output_prefix)
 
     elif args.type_of_sim == 'enur_fam':
-        enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file}'
+        if args.output_prefix is None:
+            enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file}'
+        else:
+            enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file} -o {args.output_prefix}'
         subprocess.run([enur_fam_cmd], shell=True)

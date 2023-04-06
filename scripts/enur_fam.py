@@ -53,6 +53,7 @@ def find_rt(node1, node2):
 
     elif len(sp) == 1:
         if true_half:
+
             pass
 
         return 'half'
@@ -87,11 +88,11 @@ def find_com_anc(G, node1, node2):
 def find_mc_with_ca(G, node1, node2, com_anc):
     node1_path = nx.shortest_path(G, com_anc, node1)
     node2_path = nx.shortest_path(G, com_anc, node2)
-
     if len(node1_path) == len(node2_path):
         mc = len(node1_path) + len(node2_path) - 2
     else:
         mc = len(np.setdiff1d(node1_path, node2_path)) + len(np.setdiff1d(node2_path, node1_path))
+
     return mc
 
 
@@ -142,12 +143,12 @@ def find_pairwise_relationships(G, networkx_prefix):
                 meioses_count = find_mc_with_ca(G, node1, node2, ca)
                 generation_depth = np.abs(nx.shortest_path_length(G, ca, node1) - nx.shortest_path_length(G, ca, node2))
                 rt = find_rt(node1, node2)
-
                 rc = find_relationship(generation_depth, meioses_count, rt)
                 relationships.append(['1', node1, node2, meioses_count, generation_depth, rt, rc])
 
             else:
-                relationships.append(['1', node1, node2, 0, 0, 'NA', 'NA'])
+                continue
+                # relationships.append(['1', node1, node2, 0, 0, 'NA', 'NA'])
 
         # Index to keep track of upper triangle of pairwise individuals in family_list
         node_index+=1

@@ -262,10 +262,10 @@ class load_founders:
                                shell=True)
         # Now that the simulation is complete, this will reindex the vcf files sample ID to match the
         # id found in the family pedigree graph
-        util.update_vcf_header(self.output_vcf, self.networkx_file)
+        util.update_vcf_header(f'{self.output_prefix}_genomes.vcf', self.networkx_file)
 
         # Add CONTIG header to the VCF file
-        util.add_contig(self.output_vcf)
+        util.add_contig(f'{self.output_prefix}_genomes.vcf')
 
 
         #  Now that the simulation is done, we will delete all files not desired by user, feel free to undelete these

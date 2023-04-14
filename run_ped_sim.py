@@ -240,7 +240,7 @@ if __name__ == '__main__':
         util.find_founders(networkx_file=args.networkx_file, shell_output=True)
 
     elif args.type_of_sim == 'filter_vcf':
-        util.filter_vcf_for_slim(vcf_filepath=args.vcf_file)
+        util.filter_vcf_for_slim(vcf_file=args.vcf_file)
 
     elif args.type_of_sim == 'convert_pedigree':
         convert_pedigree.convert_pedigree(ped_filepath=args.networkx_file, output_prefix=args.output_prefix)

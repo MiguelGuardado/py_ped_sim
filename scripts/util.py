@@ -17,21 +17,22 @@ def add_contig(vcf_file, contig_length=None):
     :param contig_length: Length of the genome this file was simulated under.
     :return:
     """
+    vcf_prefix = vcf_file.split('.')[0]
 
-    awk_cmd = """'/^#CHROM/ { printf("##contig=<ID=1,length=195471971>\\n");} {print;}'"""
-    cmd = f"awk {awk_cmd} {vcf_file} > tmp.vcf"
+    awk_cmd = """'/^#CHROM/ { printf("##contig=<ID=1,length=1000000000>\\n");} {print;}'"""
+    cmd = f"awk {awk_cmd} {vcf_file} > {vcf_prefix}_tmp.vcf"
     subprocess.run([cmd], shell=True)
 
-    mv_cmd = f'mv tmp.vcf {vcf_file}'
+    mv_cmd = f'mv {vcf_prefix}_tmp.vcf {vcf_file}'
     subprocess.run([mv_cmd], shell=True)
 
-def update_vcf_header(vcf_filepath, fam_graph):
+def update_vcf_header(vcf_file, fam_graph):
     """
     This function will take the simulated genomes(vcf file) from our software, and utilizes bcftools to
     reindex the file to the list of IDs used in the family pedigree graph. My software outputs the individuals genomes
     as the indexes of thier ID's from lowest to highest. Utilizing bcftools reheader function we rewrite the
     node id as a list of individual
-    :param vcf_filepath: output vcf file path from ped_slim.
+    :param vcf_file: output vcf file path from ped_slim.
     :param sorted_fam_list: sorted list of individual ID based on family pedigree graph.
     :return: vcf file
 
@@ -40,8 +41,11 @@ def update_vcf_header(vcf_filepath, fam_graph):
     larger datasets. Meaning
     """
     #  First we check if the length of the list inputted is the correct length found in the vcf file
+    vcf_prefix = vcf_file.split('.')[0]
+    print(vcf_file)
+    print(vcf_prefix)
 
-    find_length_cmd = f"bcftools query -l {vcf_filepath} | wc -l"
+    find_length_cmd = f"bcftools query -l {vcf_file} | wc -l"
     process = subprocess.Popen([find_length_cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     vcf_indiv_length, err = process.communicate()
     vcf_indiv_length = int(vcf_indiv_length.decode('ascii'))
@@ -52,17 +56,19 @@ def update_vcf_header(vcf_filepath, fam_graph):
     fam_list = np.array(di_family.nodes)
     fam_list = np.sort(fam_list.astype(int)).astype(str)
 
+    print(f'{vcf_prefix}_sampleid.txt')
+    print(vcf_prefix)
     if len(fam_list) == vcf_indiv_length:
-        np.savetxt('sorted_sampleid.txt', fam_list, fmt='%s')
+        np.savetxt(f'{vcf_prefix}_sampleid.txt', fam_list, fmt='%s')
 
-        reheader_cmd = f'bcftools reheader -s sorted_sampleid.txt -o tmp.vcf {vcf_filepath}'
+        reheader_cmd = f'bcftools reheader -s {vcf_prefix}_sampleid.txt {vcf_file} -o {vcf_prefix}_tmp.vcf'
         subprocess.run([reheader_cmd], shell=True)
 
-        rm_cmd = f'rm sorted_sampleid.txt {vcf_filepath}'
+        rm_cmd = f'rm {vcf_prefix}_sampleid.txt {vcf_file}'
         subprocess.run([rm_cmd], shell=True)
 
-        mv_cmd = f'mv tmp.vcf {vcf_filepath}'
-        subprocess.run([mv_cmd],shell=True)
+        mv_cmd = f'mv {vcf_prefix}_tmp.vcf {vcf_file}'
+        subprocess.run([mv_cmd], shell=True)
 
 
 def convert_networkx_to_ped_wprofiles(networkx_file, output_prefix, profiles_file):
@@ -236,7 +242,7 @@ def convert_ped_to_networkx(ped_file, output_prefix):
     output_filepath = f'{output_prefix}.nx'
     nx.write_edgelist(networkx_pedigree, f"{output_filepath}")
 
-def filter_vcf_for_slim(vcf_filepath):
+def filter_vcf_for_slim(vcf_file):
     '''
         This method will be called to update the user's inputted vcf file, this file will only be called under certain
         conditions of the vcf file.
@@ -259,23 +265,23 @@ def filter_vcf_for_slim(vcf_filepath):
         :return:
         self.founder_genomes - assigned to the output founder genome vcf file that is able to be read in by SLiM.
 
-    :param vcf_filepath:
+    :param vcf_file:
     :return:
     '''
 
-    vcf_prefix = vcf_filepath.split('.')[0]
+    vcf_prefix = vcf_file.split('.')[0]
 
-    shell_cmd = f"bcftools view -m2 -M2 -v snps {vcf_filepath} -O v -o tmp_snps.vcf"
+    shell_cmd = f"bcftools view -m2 -M2 -v snps {vcf_file} -O v -o {vcf_prefix}_tmp_snps.vcf"
     subprocess.run([shell_cmd], shell=True)
 
     # This will filter any sites that empty, Minor Allel Count == 0
-    shell_cmd = "bcftools filter -e 'MAC == 0' tmp_snps.vcf -O v -o tmp_only_snps.vcf"
+    shell_cmd = f"bcftools filter -e 'MAC == 0' {vcf_prefix}_tmp_snps.vcf -O v -o {vcf_prefix}_only_snps.vcf"
     subprocess.run([shell_cmd], shell=True)
 
-    mv_cmd = f'mv tmp_only_snps.vcf {vcf_prefix}_slim_fil.vcf'
+    mv_cmd = f'mv {vcf_prefix}_only_snps.vcf {vcf_prefix}_slim_fil.vcf'
     subprocess.run([mv_cmd], shell=True)
 
-    shell_cmd = f'rm tmp_snps.vcf'
+    shell_cmd = f'rm {vcf_prefix}_tmp_snps.vcf'
     subprocess.run([shell_cmd], shell=True)
 
 

@@ -43,7 +43,7 @@ reproduction(p1) {
 	for (index in seqLen(nrow(cur_gen))) {
 		//this gets the index of the row we are looking at for the current generation
 		row = cur_gen[index,];
-		print(row);
+		//print(row);
 
 		if(row[,2]==0)
 		{
@@ -64,8 +64,8 @@ reproduction(p1) {
 		parent1 = subpop.subsetIndividuals(tag=row[,1]);//lets the 1st row become parent1
 		parent2 = subpop.subsetIndividuals(tag=row[,2]);//lets the 2nd row become parent2
 
-		print(parent1);
-		print(parent2);
+		//print(parent1);
+		//print(parent2);
 
 		child = subpop.addCrossed(parent1[0], parent2[0]);  //creates the child from parent1 and parent
 		child.tag = row[,3];//assigns the child.tag to the number made from the pedigree

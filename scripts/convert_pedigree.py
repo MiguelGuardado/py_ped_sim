@@ -162,15 +162,10 @@ class convert_pedigree:
                 indiv_pred = list(self.sub_fam_graph.predecessors(indiv))
                 indiv = str(indiv)  # Convert this to str to input inside self.family_generation
 
-
-                print(indiv, indiv_pred)
-
                 # individual has two parents
                 if len(indiv_pred) == 2:
                     # Check if first parent is a desc, not a founder
                     if indiv_pred[0] in self.family_generation:
-                        print(indiv, self.family_generation[indiv])
-                        print(indiv_pred[0], self.family_generation[indiv_pred[0]])
                         if self.family_generation[indiv] <= self.family_generation[indiv_pred[0]]:
                             gen_diff = self.family_generation[indiv_pred[0]] - self.family_generation[indiv] + 1
                             self.family_generation[indiv] = self.family_generation[indiv] + gen_diff
@@ -188,15 +183,11 @@ class convert_pedigree:
                     # Check if the single parent is a desc.
                     if indiv_pred[0] in self.family_generation:
                         if self.family_generation[indiv] <= self.family_generation[indiv_pred[0]]:
-                            gen_diff = self.family_generation[indiv_pred[1]] - self.family_generation[indiv] + 1
+                            gen_diff = self.family_generation[indiv_pred[0]] - self.family_generation[indiv] + 1
                             self.family_generation[indiv] = self.family_generation[indiv] + gen_diff
                             num_gen_shift += 1
                 else:
                     continue
-                # if indiv=='452':
-                #     print('452', self.family_generation['452'])
-                #     print('450', self.family_generation['450'])
-                #     exit('452 found, exiting')
 
 
     def run_conversion(self):

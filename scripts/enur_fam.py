@@ -2,7 +2,6 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 import argparse
-import datetime
 
 relationship_code = {
     '1_1_direct':'Parent Child',
@@ -33,7 +32,7 @@ relationship_code = {
     '0_6_unknown': 'Unknown Second Cousin'}
 
 
-def find_rt(node1, node2):
+def find_rt(node1, node2, mrcas):
     global G_undir
     global true_half
     '''
@@ -46,18 +45,20 @@ def find_rt(node1, node2):
     :return:
     '''
     # Returns all the shortest paths between a pair of two individuals
-    sp = list(nx.all_shortest_paths(G_undir, node1, node2))
+    # sp = list(nx.all_shortest_paths(G_undir, node1, node2))
 
-    if len(sp) == 2:
+    if len(mrcas) == 2:
         return 'full'
 
-    elif len(sp) == 1:
+    elif len(mrcas) == 1:
         if true_half:
-
             pass
 
         return 'half'
-
+    elif len(mrcas) > 0:
+        print('MORE THAN 2 MRCAs ARE FOUND, CHECK WHY THIS IS HAPPENING ?')
+        print(f' Indiv 1: {node1}, Indiv 2: {node2}, MRCAs: {mrcas}')
+        return 'N/A'
     else:
         return 'N/A'
 
@@ -71,29 +72,103 @@ def find_com_anc(G, node1, node2):
     '''
     try:
         # Find the set of ancestors for both nodes
-        ancestors1 = set(nx.ancestors(G, node1))
-        ancestors2 = set(nx.ancestors(G, node2))
-        # Find the intersection of the two sets to find the common ancestors
-        common_ancestors = list(ancestors1.intersection(ancestors2))
-        if common_ancestors:
+        ancestors1 = list(nx.ancestors(G, node1))
+        ancestors2 = list(nx.ancestors(G, node2))
 
+        ancestors1.append(node1)
+        ancestors2.append(node2)
+
+        # print(ancestors1)
+        # print(ancestors2)
+        # Find the intersection of the two sets to find the common ancestors
+        common_ancestors = np.intersect1d(ancestors1, ancestors2)
+        # print(common_ancestors)
+        if len(common_ancestors) > 0:
             # mrca is taking a long time so we can just instead look at the first intersecting ancestor.
-            ca = common_ancestors[0]
-            return ca
+            #mrca = find_most_recent_common_ancestor(G, node1, node2, common_ancestors)
+            mrca = nx.lowest_common_ancestor(G, node1, node2)
+            # print(mrca)
+            #return mrca
+            return mrca[0]
         else:
             return None
     except nx.NetworkXNoPath:
         return None
 
+def find_lowest_common_ancestors(G, indiv1, indiv2):
+    """
+    Find the lowest common ancestor in the directed, acyclic graph of node a and b.
+    The LCA is defined as on. Algorithim made from stack overflow user (Paul Brodersen) Thanks!
+
+    @reference:
+    https://en.wikipedia.org/wiki/Lowest_common_ancestor
+    https://stackoverflow.com/questions/39946894/all-lowest-common-ancestor-with-networkx
+
+    Notes:
+    ------
+    This definition is the opposite of the term as it is used e.g. in biology!
+
+    Arguments:
+    ----------
+        graph: networkx.DiGraph instance
+            directed, acyclic, graph
+
+        a, b:
+            node IDs
+
+    Returns:
+    --------
+        lca: [node 1, ..., node n]
+            list of lowest common ancestor nodes (can be more than one)
+    """
+
+    assert nx.is_directed_acyclic_graph(G), "Graph has to be acyclic and directed."
+
+    # get ancestors of both (intersection)
+    ancestors1 = list(nx.ancestors(G, indiv1))
+    ancestors2 = list(nx.ancestors(G, indiv2))
+
+    ancestors1.append(indiv1)
+    ancestors2.append(indiv2)
+
+
+    # Find the intersection of the two sets to find the common ancestors
+    common_ancestors = np.intersect1d(ancestors1, ancestors2)
+
+    # print(common_ancestors)
+
+    if len(common_ancestors) > 0:
+
+        # get sum of path lengths
+        sum_of_path_lengths = np.zeros((len(common_ancestors)))
+        for ii, c in enumerate(common_ancestors):
+            sum_of_path_lengths[ii] = nx.shortest_path_length(G, c, indiv1) \
+                                      + nx.shortest_path_length(G, c, indiv2)
+
+
+    # return minima
+        minima, = np.where(sum_of_path_lengths == np.min(sum_of_path_lengths))
+
+        return [common_ancestors[ii] for ii in minima]
+    else:
+        return None
+
 def find_mc_with_ca(G, node1, node2, com_anc):
     node1_path = nx.shortest_path(G, com_anc, node1)
     node2_path = nx.shortest_path(G, com_anc, node2)
-    if len(node1_path) == len(node2_path):
-        mc = len(node1_path) + len(node2_path) - 2
-    else:
-        mc = len(np.setdiff1d(node1_path, node2_path)) + len(np.setdiff1d(node2_path, node1_path))
 
-    return mc
+    node1_path_fil = np.setdiff1d(node1_path, node2_path)
+    node2_path_fil = np.setdiff1d(node2_path, node1_path)
+
+    # print('node 1 path ', node1_path_fil)
+    # print('node 2 path ', node2_path_fil)
+
+    # if len(node1_path) == len(node2_path):
+    #     mc = len(node1_path) + len(node2_path)
+    # else:
+    #     mc = len(np.setdiff1d(node1_path, node2_path)) + len(np.setdiff1d(node2_path, node1_path))
+
+    return len(node1_path_fil) + len(node2_path_fil)
 
 
 def find_relationship(gen, mc, rt):
@@ -112,19 +187,21 @@ def find_pairwise_relationships(G, networkx_prefix):
 
     node_index = 0
     for node1 in family_list:
-        # print(node_index/len(family_list))
+
         for node2 in family_list[node_index + 1:]:
             if node1 == node2:
                 continue
+
             # Function to return a single most recent common ancestor(mrca) between two individuals.
-            ca = find_com_anc(G, node1, node2)
+            #ca = find_com_anc(G, node1, node2)
+            mrcas = find_lowest_common_ancestors(G, node1, node2)
+            #print(f"Indiv1 : {node1}, Indiv2: {node2}, MRCA:{mrca}")
 
             if nx.has_path(G, node1, node2):
                 # In this case, if a path exsist between two nodes in a graph then are a direct connection between these members.
                 path = nx.shortest_path(G, node1, node2)
                 meioses_count = len(path) - 1
                 generation_depth = nx.shortest_path_length(G, node1, node2)
-
                 rc = find_relationship(generation_depth, meioses_count, 'direct')
                 relationships.append(['1', node1, node2, meioses_count, generation_depth, 'direct', rc])
 
@@ -137,18 +214,18 @@ def find_pairwise_relationships(G, networkx_prefix):
                 rc = find_relationship(generation_depth, meioses_count, 'direct')
                 relationships.append(['1', node1, node2, meioses_count, generation_depth, 'direct', rc])
 
-            elif ca is not None:
+            elif mrcas is not None:
                 # If a common ancestor exist, then there is at least one common ancestor between a pair of two nodes.
-                # meioses_count = nx.shortest_path_length(G, mrca, node1) + nx.shortest_path_length(G, mrca, node2)
-                meioses_count = find_mc_with_ca(G, node1, node2, ca)
-                generation_depth = np.abs(nx.shortest_path_length(G, ca, node1) - nx.shortest_path_length(G, ca, node2))
-                rt = find_rt(node1, node2)
+                mrca = mrcas[0]
+                #meioses_count = nx.shortest_path_length(G, mrca, node1) + nx.shortest_path_length(G, mrca, node2)
+                meioses_count = find_mc_with_ca(G, node1, node2, mrca)
+                generation_depth = np.abs(nx.shortest_path_length(G, mrca, node1) - nx.shortest_path_length(G, mrca, node2))
+                rt = find_rt(node1, node2, mrcas)
                 rc = find_relationship(generation_depth, meioses_count, rt)
                 relationships.append(['1', node1, node2, meioses_count, generation_depth, rt, rc])
 
             else:
                 continue
-                # relationships.append(['1', node1, node2, 0, 0, 'NA', 'NA'])
 
         # Index to keep track of upper triangle of pairwise individuals in family_list
         node_index+=1
@@ -179,6 +256,3 @@ if __name__ == '__main__':
 
     # Feed into function to determine relationships statistics for the family pedigrees
     find_pairwise_relationships(G, networkx_prefix=user_args.output_prefix)
-
-
-

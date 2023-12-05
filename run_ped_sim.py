@@ -8,6 +8,7 @@ Recent Update: 02/15/2022
 import argparse
 import os
 import subprocess
+import numpy as np
 
 from scripts import convert_pedigree
 from scripts import util
@@ -36,7 +37,12 @@ def load_args():
     parser.add_argument('-v', '--vcf_file', type=str)
     parser.add_argument('-p', '--ped_file', type=str)
     parser.add_argument('-pr', '--profiles_file', type=str)
+    parser.add_argument('-p1', '--prob_1', type=float, default=0.01)
+    parser.add_argument('-p2', '--prob_2', type=float, default=0.50)
+    parser.add_argument('-y', '--years_to_sample', nargs='+', type=int)
     parser.add_argument('-n', '--networkx_file', type=str)
+    parser.add_argument('-c', '--census_filepath', type=str, default='scripts/ipumps_sibship_dist.txt')
+    parser.add_argument('-cp', '--create_plot', type=bool, default=False)
     parser.add_argument('-f', '--fasta_file', type=str)
     parser.add_argument('-e', '--exact_founder_id', type=str)
     parser.add_argument('-o', '--output_prefix', type=str)
@@ -45,8 +51,7 @@ def load_args():
     parser.add_argument('-r', '--recomb_rate', default='1e-8', type=str)
     parser.add_argument('-n_gen,', '--number_of_gens', default=12000, type=int)
     parser.add_argument('-n_indiv', '--number_of_indivs', default=1000, type=int)
-    parser.add_argument('-s', '--seed_number', default=1, type=int)
-    parser.add_argument('-full_output', default=False)
+    parser.add_argument('-s', '--seed_number', default=np.random.randint(100000, size=1), type=int)
 
     return parser.parse_args()
 
@@ -86,6 +91,9 @@ def check_params():
 
     We will additionally find the absolute path of each file prior to running the simulations so we dont have to
     reference the users local directory .
+
+
+    It might be annoying but we check the input for each simulation type reqested.
     """
     if args.output_prefix is not None:
         args.output_prefix = os.path.abspath(f"{args.output_prefix}")
@@ -162,6 +170,11 @@ def check_params():
             raise_filepath_error(args.networkx_file)
         args.networkx_file = os.path.abspath(args.networkx_file)
 
+    elif args.type_of_sim == 'fill_ped':
+        if not os.path.isfile(args.networkx_file):
+            raise_filepath_error(args.networkx_file)
+        args.networkx_file = os.path.abspath(args.networkx_file)
+
     elif args.type_of_sim == 'convert_pedigree':
         if not os.path.isfile(args.networkx_file):
             raise_filepath_error(args.networkx_file)
@@ -172,9 +185,21 @@ def check_params():
             raise_filepath_error(args.networkx_file)
         args.networkx_file = os.path.abspath(args.networkx_file)
 
+    elif args.type_of_sim == 'sim_ped':
+        if not os.path.isfile(args.census_filepath):
+            raise_filepath_error(args.census_filepath)
+        args.census_filepath = os.path.abspath(args.census_filepath)
+        args.years_to_sample = ' '.join(str(x) for x in args.years_to_sample)
 
+    elif args.type_of_sim == 'sim_map':
+        if not os.path.isfile(args.networkx_file):
+            raise_filepath_error(args.networkx_file)
 
+        if not os.path.isfile(args.profiles_file):
+            raise_filepath_error(args.profiles_file)
 
+        args.networkx_file = os.path.abspath(args.networkx_file)
+        args.profiles_file = os.path.abspath(args.profiles_file)
 
 #MAIN CLASS: this is where the ped_sim code starts.
 if __name__ == '__main__':
@@ -182,7 +207,6 @@ if __name__ == '__main__':
 
 #   Load in the users arguments
     args = load_args()
-
 
 #   Check in the user's arguments are valid.
     check_params()
@@ -193,9 +217,6 @@ if __name__ == '__main__':
 
 #   Run feature provided by the user in the -t parameter, will exit if user inputs non supported feature.'
     if args.type_of_sim == 'sim_founders': # Simulate founders genomes
-        # shell_cmd = f'python scripts/sim_fam_msprime.py -n {args.} '
-        ## Need to update this sim founder script
-        ## -n (n_founder), -Ne (population_size), -l(genome_length) , -s(seed_num), -o(output_vcf), -mu, -r
         exit('sim founder under development, dont look here!!')
 
 
@@ -232,7 +253,8 @@ if __name__ == '__main__':
     elif args.type_of_sim == 'networkx_to_ped':
         if args.profiles_file is not None:
             util.convert_networkx_to_ped_wprofiles(networkx_file=args.networkx_file,
-                                                   output_prefix=args.output_prefix, profiles_file=args.profiles_file)
+                                                   output_prefix=args.output_prefix,
+                                                   profiles_file=args.profiles_file)
         else:
             util.convert_networkx_to_ped(networkx_file=args.networkx_file, output_prefix=args.output_prefix)
 
@@ -241,6 +263,9 @@ if __name__ == '__main__':
 
     elif args.type_of_sim == 'filter_vcf':
         util.filter_vcf_for_slim(vcf_file=args.vcf_file)
+
+    elif args.type_of_sim == 'fill_ped':
+        util.fill_ped(networkx_file=args.networkx_file, output_prefix=args.output_prefix)
 
     elif args.type_of_sim == 'convert_pedigree':
         convert_pedigree.convert_pedigree(ped_filepath=args.networkx_file, output_prefix=args.output_prefix)
@@ -251,3 +276,16 @@ if __name__ == '__main__':
         else:
             enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file} -o {args.output_prefix}'
         subprocess.run([enur_fam_cmd], shell=True)
+
+    elif args.type_of_sim == 'sim_ped':
+        sim_ped_cmd = f'python scripts/sim_pedigree.py -y {args.years_to_sample} -c {args.census_filepath} ' \
+                      f'-cp {args.create_plot} -o {args.output_prefix}'
+        subprocess.run([sim_ped_cmd], shell=True)
+
+    elif args.type_of_sim == 'sim_map':
+        sim_ped_cmd = f'python scripts/sim_pedigree.py -n {args.networkx_file} -pr {args.profiles_file} ' \
+                      f'-p1 {args.prob_1} -p2 {args.prob_2} -o {args.output_prefix}'
+        subprocess.run([sim_ped_cmd], shell=True)
+
+    else:
+        exit('No input entered, please use -t to specify the action you want preformed')

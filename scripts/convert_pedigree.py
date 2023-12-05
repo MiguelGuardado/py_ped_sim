@@ -10,6 +10,10 @@ import networkx as nx
 import pandas as pd
 
 
+
+"""
+NOTE THIS SCRIPT IS USED TO CONVERT NETWORKX REPRESENTED PEDIGREES INTO SLIM READABLE PEDIGREES.
+"""
 class convert_pedigree:
     def __init__(self, ped_filepath='', output_prefix=''):
         self.ped_filepath = ped_filepath

@@ -42,8 +42,8 @@ def update_vcf_header(vcf_file, fam_graph):
     """
     #  First we check if the length of the list inputted is the correct length found in the vcf file
     vcf_prefix = vcf_file.split('.')[0]
-    print(vcf_file)
-    print(vcf_prefix)
+    #print(vcf_file)
+    #print(vcf_prefix)
 
     find_length_cmd = f"bcftools query -l {vcf_file} | wc -l"
     process = subprocess.Popen([find_length_cmd], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
@@ -56,8 +56,8 @@ def update_vcf_header(vcf_file, fam_graph):
     fam_list = np.array(di_family.nodes)
     fam_list = np.sort(fam_list.astype(int)).astype(str)
 
-    print(f'{vcf_prefix}_sampleid.txt')
-    print(vcf_prefix)
+    #print(f'{vcf_prefix}_sampleid.txt')
+    #print(vcf_prefix)
     if len(fam_list) == vcf_indiv_length:
         np.savetxt(f'{vcf_prefix}_sampleid.txt', fam_list, fmt='%s')
 
@@ -69,7 +69,6 @@ def update_vcf_header(vcf_file, fam_graph):
 
         mv_cmd = f'mv {vcf_prefix}_tmp.vcf {vcf_file}'
         subprocess.run([mv_cmd], shell=True)
-
 
 def convert_networkx_to_ped_wprofiles(networkx_file, output_prefix, profiles_file):
     """
@@ -121,13 +120,13 @@ def convert_networkx_to_ped_wprofiles(networkx_file, output_prefix, profiles_fil
                 sp1_sex = sex_map[p1_sex]
 
                 if sp1_sex == 1:
-                    print(p1_sex, int(cur_node_pred[0]), int(cur_node_pred[1]))
+                    #print(p1_sex, int(cur_node_pred[0]), int(cur_node_pred[1]))
                     line = [fam_id, int(indiv), int(cur_node_pred[0]), int(cur_node_pred[1]), sex, -9, birthyear]
-                    print(line)
+                    #print(line)
                 else:
-                    print(p1_sex, int(cur_node_pred[0]), int(cur_node_pred[1]))
+                    #print(p1_sex, int(cur_node_pred[0]), int(cur_node_pred[1]))
                     line = [fam_id, int(indiv), int(cur_node_pred[1]), int(cur_node_pred[0]), sex, -9, birthyear]
-                    print(line)
+                    #print(line)
 
                 ped_file.append(line)
 
@@ -158,6 +157,33 @@ def convert_networkx_to_ped_wprofiles(networkx_file, output_prefix, profiles_fil
 
     ped_file.to_csv(ped_filepath, sep=" ", index=False, header=False)
 
+def fill_ped(networkx_file, output_prefix):
+    fam_graph = nx.read_edgelist(networkx_file, create_using=nx.DiGraph())
+
+    # make output prefix same as input family pedigree if none was given.
+    if output_prefix == None:
+        output_prefix = networkx_file.split('.nx')[0]
+
+    # Identify max node from family pedigree to create a counter ID of new requests.
+    max_node = np.max(list(map(int, fam_graph.nodes)))
+
+    # Iterator to create edge list
+    edge_list = []
+    for indiv in fam_graph:
+        #print(indiv)
+        # Get parents of individual
+        i_pred = list(fam_graph.predecessors(indiv))
+
+        # If only a single parent that is present, create an individual for the second parent.
+        if len(i_pred) == 1:
+            #print(i_pred)
+            # fam_graph.add_edge(max_node, indiv)
+            edge_list.append((max_node, indiv))
+            max_node+=1
+
+    # With the iterator of edge creation we add the second parent to single parents.
+    fam_graph.add_edges_from(edge_list)
+    nx.write_edgelist(fam_graph, f"{output_prefix}_fill.nx")
 
 def convert_networkx_to_ped(networkx_file, output_prefix):
     """
@@ -173,6 +199,9 @@ def convert_networkx_to_ped(networkx_file, output_prefix):
 
     ped_undir_edgelist = nx.read_edgelist(networkx_file, create_using=nx.Graph())
     sub_fams = list(nx.connected_components(ped_undir_edgelist))
+
+    if output_prefix == None:
+        output_prefix = networkx_file.split('.nx')[0]
 
 
     fam_id = 1
@@ -242,6 +271,48 @@ def convert_ped_to_networkx(ped_file, output_prefix):
     output_filepath = f'{output_prefix}.nx'
     nx.write_edgelist(networkx_pedigree, f"{output_filepath}")
 
+# def filter_vcf_for_slim(vcf_file):
+#     '''
+#         This method will be called to update the user's inputted vcf file, this file will only be called under certain
+#         conditions of the vcf file.
+#         1. The vcf file will be filter for any multi-allelic site, only bi-allelic sites are allowed for current
+#         simulations.
+#         2. Will remove any empty sites found in the vcf file.
+#         3. We will update the AA col found in the info column, to match with SLiM's standard upper case A/C/T/G input.
+#         SliM simulations that require an input vcf MUST have the AA snp specified in the INFO column.
+#
+#         TO DO
+#         I am actually right, you only need to update the AA column for nucleotide specific simulations, should I modify
+#         to add an extra flag if the preprocessing needs to be done?
+#
+#         03/28/23
+#         Inputting the AA allele is only needed for nucleotide specific simulations, might just put it on the user to
+#         make sure the info column has info/AA information.
+#
+#
+#         filter_vcf_for_slim will only preform steps 1. and 2. to make sure vcf files only contain bi-allelic snps.
+#         :return:
+#         self.founder_genomes - assigned to the output founder genome vcf file that is able to be read in by SLiM.
+#
+#     :param vcf_file:
+#     :return:
+#     '''
+#
+#     vcf_prefix = vcf_file.split('.')[0]
+#
+#     shell_cmd = f"bcftools view -m2 -M2 -v snps {vcf_file} -O v -o {vcf_prefix}_tmp_snps.vcf"
+#     subprocess.run([shell_cmd], shell=True)
+#
+#     # This will filter any sites that empty, Minor Allel Count == 0
+#     shell_cmd = f"bcftools filter -e 'MAC == 0' {vcf_prefix}_tmp_snps.vcf -O v -o {vcf_prefix}_only_snps.vcf"
+#     subprocess.run([shell_cmd], shell=True)
+#
+#     mv_cmd = f'mv {vcf_prefix}_only_snps.vcf {vcf_prefix}_slim_fil.vcf'
+#     subprocess.run([mv_cmd], shell=True)
+#
+#     shell_cmd = f'rm {vcf_prefix}_tmp_snps.vcf'
+#     subprocess.run([shell_cmd], shell=True)
+
 def filter_vcf_for_slim(vcf_file):
     '''
         This method will be called to update the user's inputted vcf file, this file will only be called under certain
@@ -255,13 +326,6 @@ def filter_vcf_for_slim(vcf_file):
         TO DO
         I am actually right, you only need to update the AA column for nucleotide specific simulations, should I modify
         to add an extra flag if the preprocessing needs to be done?
-
-        03/28/23
-        Inputting the AA allele is only needed for nucleotide specific simulations, might just put it on the user to
-        make sure the info column has info/AA information.
-
-
-        filter_vcf_for_slim will only preform steps 1. and 2. to make sure vcf files only contain bi-allelic snps.
         :return:
         self.founder_genomes - assigned to the output founder genome vcf file that is able to be read in by SLiM.
 
@@ -271,17 +335,29 @@ def filter_vcf_for_slim(vcf_file):
 
     vcf_prefix = vcf_file.split('.')[0]
 
-    shell_cmd = f"bcftools view -m2 -M2 -v snps {vcf_file} -O v -o {vcf_prefix}_tmp_snps.vcf"
+    shell_cmd = f"bcftools view -m2 -M2 -v snps {vcf_file} -O v -o tmp_snps.vcf"
     subprocess.run([shell_cmd], shell=True)
 
     # This will filter any sites that empty, Minor Allel Count == 0
-    shell_cmd = f"bcftools filter -e 'MAC == 0' {vcf_prefix}_tmp_snps.vcf -O v -o {vcf_prefix}_only_snps.vcf"
+    shell_cmd = "bcftools filter -e 'MAC == 0' tmp_snps.vcf -O v -o tmp_only_snps.vcf"
     subprocess.run([shell_cmd], shell=True)
 
-    mv_cmd = f'mv {vcf_prefix}_only_snps.vcf {vcf_prefix}_slim_fil.vcf'
-    subprocess.run([mv_cmd], shell=True)
+    # Extract a list of each snps infomration for ancestral allele info correction
+    shell_cmd = "bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%REF\n' tmp_only_snps.vcf | bgzip -c > annot.txt.gz"
+    subprocess.run([shell_cmd], shell=True)
 
-    shell_cmd = f'rm {vcf_prefix}_tmp_snps.vcf'
+    # Index the annotated file
+    shell_cmd = "tabix -s1 -b2 -e2 annot.txt.gz"
+    subprocess.run([shell_cmd], shell=True)
+
+    # Annotate the AA column and output vcf file to the self.founder_vcf_filepath variable
+    shell_cmd = f"bcftools annotate -a annot.txt.gz -c CHROM,POS,REF,ALT,INFO/AA tmp_only_snps.vcf -O v -o {vcf_prefix}_slim_fil.vcf"
+    subprocess.run([shell_cmd], shell=True)
+
+    # mv_cmd = f'mv {vcf_prefix}_fin.vcf {vcf_prefix}_slim_fil.vcf'
+    # subprocess.run([mv_cmd], shell=True)
+
+    shell_cmd = f'rm tmp_snps.vcf tmp_only_snps.vcf annot.txt.gz annot.txt.gz.tbi'
     subprocess.run([shell_cmd], shell=True)
 
 

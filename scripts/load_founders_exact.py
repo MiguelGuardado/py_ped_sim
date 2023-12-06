@@ -223,8 +223,7 @@ class load_founders_exact:
                                 f' -d fasta_file="{self.fasta_file}"'
                                 f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'],
                                shell=True)
-
-        util.update_vcf_header(self.output_vcf, self.networkx_file)
+        util.update_vcf_header(f'{self.output_prefix}_genomes.vcf', self.networkx_file)
         #Now that the simulation is done, we will delete all files not desired by user, feel free to undelete these
         # if you want these outputs.
 

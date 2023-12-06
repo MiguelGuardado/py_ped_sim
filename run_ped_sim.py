@@ -42,7 +42,6 @@ def load_args():
     parser.add_argument('-y', '--years_to_sample', nargs='+', type=int)
     parser.add_argument('-n', '--networkx_file', type=str)
     parser.add_argument('-c', '--census_filepath', type=str, default='scripts/ipumps_sibship_dist.txt')
-    parser.add_argument('-cp', '--create_plot', type=bool, default=False)
     parser.add_argument('-f', '--fasta_file', type=str)
     parser.add_argument('-e', '--exact_founder_id', type=str)
     parser.add_argument('-o', '--output_prefix', type=str)
@@ -57,7 +56,7 @@ def load_args():
 
 
 def raise_filepath_error(filepath):
-    raise Exception(f"Filepath not found: '{filepath}' s")
+    raise Exception(f"Filepath not found: '{filepath}'")
 
 def check_exp_input(exp_expression):
     """
@@ -279,11 +278,11 @@ if __name__ == '__main__':
 
     elif args.type_of_sim == 'sim_ped':
         sim_ped_cmd = f'python scripts/sim_pedigree.py -y {args.years_to_sample} -c {args.census_filepath} ' \
-                      f'-cp {args.create_plot} -o {args.output_prefix}'
+                      f'-o {args.output_prefix} -s {args.seed_number}'
         subprocess.run([sim_ped_cmd], shell=True)
 
     elif args.type_of_sim == 'sim_map':
-        sim_ped_cmd = f'python scripts/sim_pedigree.py -n {args.networkx_file} -pr {args.profiles_file} ' \
+        sim_ped_cmd = f'python scripts/sim_map.py -n {args.networkx_file} -pr {args.profiles_file} ' \
                       f'-p1 {args.prob_1} -p2 {args.prob_2} -o {args.output_prefix}'
         subprocess.run([sim_ped_cmd], shell=True)
 

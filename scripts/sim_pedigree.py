@@ -18,7 +18,6 @@ def load_args():
     parser.add_argument('-s', '--seed', nargs='+', type=int, default=np.random.randint(100000, size=1))
     parser.add_argument('-c', '--census_filepath', type=str, default='scripts/ipumps_sibship_dist.txt')
     parser.add_argument('-o', '--output_prefix', type=str)
-    parser.add_argument('-cp', '--create_plot', type=bool, default=False)
 
     return parser.parse_args()
 
@@ -26,7 +25,6 @@ def family (graph, parent1, curGen, finalGenDepth):
     global curPer
     global years_to_sim
     global sibship_dist_df
-
 
     if(curGen >= finalGenDepth):
         return()
@@ -38,7 +36,6 @@ def family (graph, parent1, curGen, finalGenDepth):
     # Note this will simulate a continuous number that will need to be rounded to a integer.
     # the mean and sd are defined based on the sibship file that the user enters.
     kid_num = np.random.normal(loc=curgen_row['Mean'], scale=curgen_row['SD'], size=1)[0]
-
     # If the random number sampled is below 0.5 then no kid will be simulated
     if kid_num <= 0.5:
         #print(f'Zero kids simulated for parent {parent1}')
@@ -82,6 +79,8 @@ def family (graph, parent1, curGen, finalGenDepth):
         sex_label = np.random.choice([0, 1], size=1, p=[0.5, 0.5])
         sex = sex_map[sex_label[0]]
         nx.set_node_attributes(graph, values={child: sex}, name='sex')
+
+        family(graph, child, curGen + 1, finalGenDepth)
     return
 
 if __name__ == '__main__':
@@ -129,16 +128,3 @@ if __name__ == '__main__':
     gen_dict = nx.get_node_attributes(fam_graph, name='gen')
     prof_df = pd.DataFrame(zip(sex_dict.keys(), sex_dict.values(), gen_dict.values()), columns=['ID', 'Sex', 'Gen'])
     prof_df.to_csv(f"{user_args.output_prefix}_profiles.txt", sep='\t', index=False)
-
-
-    # zero_event_df = pd.DataFrame(zero_event_list, columns=['ID', 'Gen'])
-    # zero_event_df.to_csv('tmp_zero_events.txt', sep='\t', index=False)
-
-    # This will print a plot of the family pedigree if they user request.
-    # WARNING: Families above 100 indivs will not look clean.
-    if user_args.create_plot:
-        pos = nx.nx_agraph.graphviz_layout(fam_graph, prog="dot")
-        plt.figure()
-        nx.draw(fam_graph, pos, node_size=300, alpha=0.5, node_color="blue", with_labels=True)
-        plt.axis("equal")
-        plt.savefig(f"{user_args.output_prefix}.jpeg", format='jpeg')

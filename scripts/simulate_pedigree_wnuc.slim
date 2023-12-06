@@ -50,7 +50,7 @@ initialize() {
 reproduction(p1) {
 
 	// generate all offspring for the current generation
-	cur_gen = ped_matrix[gen_list == sim.generation,];
+	cur_gen = ped_matrix[gen_list == community.tick, ];
 
 	for (index in seqLen(nrow(cur_gen))) {
 		//this gets the index of the row we are looking at for the current generation
@@ -99,7 +99,7 @@ reproduction(p2){
 2:10000000 late(){
 	LastIndex=length(ped_matrix[,1])-1;
 	
-	if(sim.generation==ped_matrix[LastIndex,0]){
+	if(community.tick == ped_matrix[LastIndex,0]){
    	    i_sample = sortBy(p1.individuals, "tag");    // Sorts the individuals based on their given tag for vcf file input.
 		i_sample.genomes.outputVCF(filePath=output_filename);   // outputs the pedigree, must change per different simulation
 		sim.simulationFinished();

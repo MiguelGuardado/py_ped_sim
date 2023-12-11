@@ -292,26 +292,23 @@ def filter_vcf_for_slim(vcf_file):
     subprocess.run([shell_cmd], shell=True)
 
     # This will filter any sites that empty, Minor Allel Count == 0
-    shell_cmd = "bcftools filter -e 'MAC == 0' tmp_snps.vcf -O v -o tmp_only_snps.vcf"
+    shell_cmd = f"bcftools filter -e 'MAC == 0' tmp_snps.vcf -O v -o {vcf_prefix}_slim_fil.vcf"
     subprocess.run([shell_cmd], shell=True)
 
-    # Extract a list of each snps infomration for ancestral allele info correction
-    shell_cmd = "bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%REF\n' tmp_only_snps.vcf | bgzip -c > annot.txt.gz"
-    subprocess.run([shell_cmd], shell=True)
-
-    # Index the annotated file
-    shell_cmd = "tabix -s1 -b2 -e2 annot.txt.gz"
-    subprocess.run([shell_cmd], shell=True)
-
-    # Annotate the AA column and output vcf file to the self.founder_vcf_filepath variable
-    shell_cmd = f"bcftools annotate -a annot.txt.gz -c CHROM,POS,REF,ALT,INFO/AA tmp_only_snps.vcf -O v -o {vcf_prefix}_slim_fil.vcf"
-    subprocess.run([shell_cmd], shell=True)
-
-    # mv_cmd = f'mv {vcf_prefix}_fin.vcf {vcf_prefix}_slim_fil.vcf'
-    # subprocess.run([mv_cmd], shell=True)
-
-    shell_cmd = f'rm tmp_snps.vcf tmp_only_snps.vcf annot.txt.gz annot.txt.gz.tbi'
-    subprocess.run([shell_cmd], shell=True)
+    # # Extract a list of each snps infomration for ancestral allele info correction
+    # shell_cmd = "bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%REF\n' tmp_only_snps.vcf | bgzip -c > annot.txt.gz"
+    # subprocess.run([shell_cmd], shell=True)
+    #
+    # # Index the annotated file
+    # shell_cmd = "tabix -s1 -b2 -e2 annot.txt.gz"
+    # subprocess.run([shell_cmd], shell=True)
+    #
+    # # Annotate the AA column and output vcf file to the self.founder_vcf_filepath variable
+    # shell_cmd = f"bcftools annotate -a annot.txt.gz -c CHROM,POS,REF,ALT,INFO/AA tmp_only_snps.vcf -O v -o {vcf_prefix}_slim_fil.vcf"
+    # subprocess.run([shell_cmd], shell=True)
+    #
+    # shell_cmd = f'rm tmp_snps.vcf tmp_only_snps.vcf annot.txt.gz annot.txt.gz.tbi'
+    # subprocess.run([shell_cmd], shell=True)
 
 
 def find_founders(networkx_file, shell_output=False):

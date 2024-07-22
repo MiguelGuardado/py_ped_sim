@@ -1,4 +1,4 @@
-# ped_sim - Simulating Genetic Variance onto Family Pedigree
+# py_ped_sim - Simulating Genetic Variance onto Family Pedigree
 
 ![plot](test_data/images/Fig1.png)
 

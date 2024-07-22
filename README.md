@@ -35,7 +35,7 @@ User can specify how often this event will happen in the pedigree, in addition t
 `enur_fam` - This feature will determine all pairwise relationships within a family pedigree via 3 statistics. 
 Meiosis Count, Generation Depth Difference, and Relation Type.
 
-## Supplemental Features
+### Supplemental Features
 `ped_to_networkx` - This is a helper function that is used to convert a standard pedigree (__.ped__) file into a networkx (__.nx__)  based family pedigree.
 
 `networkx_to_ped` - This is a helper function that is used to convert a networkx based pedigree (__.nx__) file into a standard pedigree (__.ped__) file.

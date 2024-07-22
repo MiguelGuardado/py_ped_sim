@@ -1,43 +1,41 @@
 # ped_sim - Simulating Genetic Variance onto Family Pedigree
 
+![plot](test_data/images/Fig1.png)
+
 # Overview
-`ped_sim` allows the use of simulating genomes onto complex family pedigrees. Using empirical genetic data to initialize the pedigree's 
-starting founder genomes, we then will utilize a forward population simulator to create new offspring individuals based crossing between
-bi-parental sexual reproduction. In addition to using empirical genetic data for the family's starting founders, 
-this software allows you to simulate the founders genomes prior to the main simulation.
-This software will the use of complex family pedigrees, with the capacity to handle implicit founders in the case 
-of incomplete families.
+`py_ped_sim` 
+We have developed a python command-line-based tool called py_ped_sim that facilitates the simulation of pedigree 
+structures and the genomes of individuals in a pedigree. py_ped_sim represents pedigrees as directed acyclic graphs, 
+enabling conversion between standard pedigree formats and integration with the forward population genetic simulator, SLiM. 
+Notably, py_ped_sim allows the simulation of varying numbers of offspring for a set of parents, with the capacity to 
+shift the distribution of sibship sizes over generations. We additionally add simulations for events of 
+misattributed paternity, which offers a way to simulate half-sibling relationships. 
+
 
 This command line tool was developed with a python front end and uses SLiM as a forward genetic simulator to simulate genetic variance on non founders.
 This software leverages family pedigrees as directed acyclic graph data structures where nodes represent individuals 
 and directed edges represent parent-child relationships. While the input must be specified as [networkx](https://networkx.org/documentation/stable/tutorial.html#directed-graphs)
 directed graph, you can additionally convert a standard ped file to a networkx based pedigree with this software.
  
-**This software is still under development**, please feel free to reach out to me for any questions or suggestions 
+Please feel free to reach out to me for any questions or suggestions 
 I can create to make this code more useable! Miguel.Guardado@ucsf.edu
 
+## Overview of Features
 
-### Types of simulations preformed
-The creation of this software is centered around founder genome initialization, and pedigree conversion. Most family pedigrees 
-do not come with the generation of each individual explicitly. The first part of each of the 3 simulations comes with converting the 
-pedigree into a slim readable pedigree file, where we know the parents for each descendants, and the generation in which they were conceived.
-Currently, this software is able to preform 3 different versions of founder genome initialization. 
+### Core Features
 
-`load_founders` - This will be used to simulate an inputted family pedigree based on loading the founder genomes from a user supplied genetic file (vcf format).
-This will require the user to input a vcf file that is identical to the number of founder that is inputted inside the family pedigree. In the case 
-of implicit founders, it will randomly assign individuals to implicit and explicit founders for the simulation. 
-If you want to specify the which founders should correspond to specific id from the vcf file, please refer to load_founder_exact function
+`sim_genomes` - Simulate genomes based on a fixed pedigree structure. Genetic simulations are preformed within SLiM. Genomes are outputted to the user within a VCF file
 
-`load_founder_exact` - This function is similar to load founder with the exception that we will not randomly assign individuals
-from the inputted vcf as founders. We will instead require an additional text file that will specify individual id's from the vcffile and the individual pedigree
-id to initialize the founders genome.
+`sim_ped` - Simulate a pedigree structure based on inputs of sibship distributions across generations. 
+User can specify their own distributions or use the default distributions provided by US Census (IPUMs)
 
-`sim_founders` - This function will instead simulate the founder genomes that will be inputted at the beginning of the pedigree simulation. The simulation
-will also be done in SLiM, and will require many parameters from the user to define the burn in period of the desired founders genomes. 
-Much care is needed for an founder burn in scenerio, for if the founder does not have enough genetic variance in it will 
-lead to very similar founders being simulated.
+`sim_map` - Simulate events of Misattributed Paternity, where someone who is presumed to be the individuals father is in fact not the biological father. 
+User can specify how often this event will happen in the pedigree, in addition to how often the new biological father is within the family, or a new individual. 
 
-## some other helper functions this software comes with.
+`enur_fam` - This feature will determine all pairwise relationships within a family pedigree via 3 statistics. 
+Meiosis Count, Generation Depth Difference, and Relation Type.
+
+## Supplemental Features
 `ped_to_networkx` - This is a helper function that is used to convert a standard pedigree (__.ped__) file into a networkx (__.nx__)  based family pedigree.
 
 `networkx_to_ped` - This is a helper function that is used to convert a networkx based pedigree (__.nx__) file into a standard pedigree (__.ped__) file.
@@ -45,14 +43,26 @@ lead to very similar founders being simulated.
 `check_founder` - This function is used return the meta information of the networkx pedigree, it will return the 
 number of founders, num of implicit founders, and num of descendants inside the family.
 
-### Basic Definitions
-Founders - Founders are defined as individuals who do not have any known ascendants. Explicit founders are classified as known
-founders who are defined by directed edges in the graph node based pedigree. Implicit founders are defined 
-in the case of incomplete pedigrees, when only on one parent is known for a descendants. Since our simulations
-need both parents to simulate the offspring, we refer to the missing parent as an implicit founder. My software is able to handle unknown parents.
+`filter_vcf` - This function will filter vcf files for only bi-allelic SNPs. This function is an important preprocessing
+step for VCF Files before genome simulations can be preformed in SLiM. Additionally it will create an info column for
+the ancestral allele for each SNP, as is a requirement for inputting vcf files into SLiM. 
 
-## ped_sim tutorial
-### Install Conda Environment
+`fill_ped` - Fill in missing pedigree information for implicit founders (individuals where only one parent is defined)
+
+`convert_pedigree` - This will preform the wrapper script to convert networkx-represented pedigrees into SLiM readable pedigree files. 
+This function will only return you the SLiM readable pedigree file for mostly debugging purposes. 
+
+
+## Basic Definitions 
+Founders - Founders are defined as individuals who do not have any known ascendants. Explicit founders are classified 
+as individuals who are defined in the pedigree. Implicit founders are defined in the case of incomplete pedigrees, 
+when only on one parent is known for a descendants. Since our simulations need both parents to simulate the 
+offspring, we refer to the missing parent as an implicit founder. My software is able to handle events of implicit founders, 
+as long as you provide a genome for them inside the vcf file. 
+
+![plot](test_data/images/Fig2.png)
+
+## Install Conda Environment
 You will need to have conda installed on your system. To install conda/mini conda onto your system follow this 
 [link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html).
 
@@ -76,84 +86,15 @@ python run_ped_sim.py -h
 For each of the simulation preformed in here you must specify the type of simulation you want preformed. This will be done
 by the `-t` parameter. This parameter is **necessary** for any simulation preformed, or else the software will break.
 
-For this tutorial, we will simulate the genomes of a 3 generation family. This family will have 20 individuals, 
-7 of which are the family's founders. This means we will need to initialize the genomes of the 7 founders so we can be 
-able to simulate the genetic architecture of the 13 remaining descendants. A visual representation of this family can
-be found in test_data/test_fam_ped.png
+Each feature of the software must be specified with the `-t` parameter. This parameter is **necessary** for any 
+simulation preformed, or else the software will not run.
 
-The data for the family tree will be represented in a standard 
-[ped](https://gatk.broadinstitute.org/hc/en-us/articles/360035531972-PED-Pedigree-format) format. For ped_sim to be able
-to read in a user family pedigree file, we will first need to convert the .ped format pedigree into a networkx based 
-pedigree. To do this, we will use ped_sim ped_to_networkx functions. After creating the networkx based pedigree, we 
-will use the check_founders function to inspect the number of founders and descendants.
-```
-cd test_data
-python ../run_ped_sim.py -t ped_to_networkx -p test_fam.ped -o test_fam
-
-python ../run_ped_sim.py -t check_founders -n test_fam.nx
-```
-Now that we have a networkx pedigree of the family, we will start with the first type of founder initialization;
-simulating the founders genomes before running the pedigree simulations. 
-
-### sim_founders
-
-```bash
-python ../run_ped_sim.py -t sim_founders -n test_fam.nx  -o testfam_sim
-```
-Suppose we have genetic data(.vcf file) of genetic data to initialize the founders with, that is where load_founders 
-can be initialized. Reminder that this will assign the individuals in the vcf file to founders randomly. 
-### load_founders
-
-```bash
-python ../run_ped_sim.py -t load_founders -n test_fam.nx -v load_founders/lwk_1kg_toydata.vcf -o testfam_load
-```
-
-### load_founders nucleotide explicit simulation
-One limitation of this software is that the chromosome and position location will be lost inside the simulations, such that if 
-you are simulating chromosome 22, the outputting genetic file will be stored as chr 1 and the exact positions will be lost. 
-This might be unideal if you want to compare your simulations with external genetic resources.
-`load_founder` and `load_founder_exact` comes with the ability for nucleotide specific simulations.
-You will additionally need to provide a fasta sequence of the vcf file you are tyring to reference. 
-
-```bash
-python ../run_ped_sim.py -t load_founders -n test_fam.nx -v load_founders/lwk_1kg_toydata.vcf -f load_founders/test_fam_fasta.fa -o testfam_load_wnuc
-```
-***note that if want family simulations across multiple chromosomes, you should create those simulations independantly/
-in parallel, this software is not flexible to distinguish 22 chromosomes inside a single simulations. 
-
-Now we want to be specific about who the founders genomes who get initialize before the simulations. load_founder_exact 
-will allow you to provide an additional 2 column text file, for each row there is a founder id and the individual id of the vcf file
-### load_founder_exact
-```bash
-python ../run_ped_sim.py -t load_founders_exact -n test_fam.nx -e load_founders/exact_founder_input.txt -v load_founders/lwk_1kg_toydata.vcf -o testfam_load_exact
-```
-This function will convert a traditional pedigree (.ped) file into a networkx pedigree (.nx)
-### ped_to_networkx
-```bash
-python ../run_ped_sim.py -t ped_to_networkx -p test_fam.ped -o test_fam
-```
-This function will convert a networkx pedigree (.nx) to a traditional pedigree (.ped) file
-### networkx_to_ped
-```bash
-python ../run_ped_sim.py -t networkx_to_ped -n test_fam.nx -o test_fam
-```
-## Output of Genetic Simulator 
-Simulated genomes get outputted as VCF files. Simulated genomes come from `sim_pedigree` and `sim_pedigree_exact` features. 
-The user will specify the output prefix of the simulations results via the `-o` user parameter.
-
-`_genomes.vcf` - Genetic file of the family simulation. Input is presented as VCF format, information about vcf_file can
-be found [here](https://www.internationalgenome.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-40/) 
-
-`_slim_pedigree.txt` - This will output the slim readable pedigree output that is read into SLiM for the genetic simulations.
-The file looks similar to a ped file, but the columns for each file will be [Generation, Offsrping, Parent1, Parent2].
-The file is created internally inside ped_sim, and can be found as a python module inside `scripts/convert_pedigree.py`.
-
-## Full parameters for each simulation
+## Feature documentation
 
 ### sim_founder 
 This feature will initialize the founders genome by running an additional genetic simulation prior to the main
 family simulation. 
-##### Required input parameters 
+#### Required input parameters 
 
 `-t sim_founder`
 
@@ -175,11 +116,23 @@ family simulation.
 
 `-s` - Seed number to use for the genetic simulation (default = 1)
 
-### load_founders
+### sim_genome and sim_genome_exact
 
-This simulation will initialize the founders genomes randomly from the inputted vcf file. 
-#####Required input parameters
-`-t load_founders`
+This will simulate genomes onto fixed pedigrees. Genomic simulations of pedigree is done in SLiM. Primarily our feature
+is a wrapper that transforms the pedigree into a format that SLiM can read for the genomic simulations. An important 
+step of this feature is assigning the founders from a user inputted vcf file to the founders in the genomic simulations,
+you can either do it randomly (sim_genomes) or explicitly assigning genomes to founders (sim_genomes_exact).
+
+Simulated genomes get outputted as VCF files. 
+
+The user will specify the output prefix of the simulations results output file name via the `-o` user parameter.
+
+**Note that VCF files must only have bi-allelic SNPs and have the ancestral allele information (AA) defined to input into SLiM, 
+please preprocess your vcf file with `filter_vcf` before running genomic simulations.**
+
+#### Required input parameters
+`-t sim_genomes` or 
+`-t sim_genomes_exact`
 
 `-n` - networkx represented family pedigree
 
@@ -187,7 +140,9 @@ This simulation will initialize the founders genomes randomly from the inputted 
 
 `-o` - output prefix of the file
 
-##### Additional parameters
+`-e` - exact founder table (space delimited table with 2 columns [vcf_id, founder_id], refer to `test_data/load_founders/exact_founder_input.txt`)
+
+#### Additional parameters
 `-f` - fasta file for the inputted vcf file, this will activate nucleotide specifc simulations
 
 `-r` - recombination rate to use for founder initialization + simulations (default = 1e-8)
@@ -196,35 +151,29 @@ This simulation will initialize the founders genomes randomly from the inputted 
 
 `-s` - Seed number to use for the genetic simulation (default = 1)
 
+#### Output
+`{output_prefix}_genomes.vcf` - Genetic file of the family simulation. Input is presented as VCF format, information about vcf_file can
+be found [here](https://www.internationalgenome.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-40/) 
 
-### load_founders_exact
-
-This simulation will initialize the founder genomes by providing an additional file to exactly map each founder to a 
-individual inputted from a vcf file. 
-
-##### Required input parameters:
-
-`-t load_founders_exact`
-
-`-n` - networkx represented family pedigree
-
-`-v` - vcf file for founder genome initalization
-
-`-e` - 2 column text file matching the pedigress founder to individuals in vcf file to initalizatine the genomes non randomly.
-`[vcf_sample_id, networkx_id]`
-
-`-o` - output prefix of the file
+`{output_prefix}_slim_pedigree.txt` - This will output the slim readable pedigree output that is read into SLiM for the genetic simulations.
+The file looks similar to a ped file, but the columns for each file will be [Generation, Offsrping, Parent1, Parent2].
 
 
-##### Additional parameters
-`-f` - fasta file for the inputted vcf file, this will activate nucleotide specifc simulations
+#### Example Usage to Assign Individuals Randomly (sim_genomes)
+```bash
+python run_ped_sim.py -t sim_genomes -n test_data/test_fam.nx -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam
+```
 
-`-r` - recombination rate to use for founder initialization + simulations (default = 1e-8)
+#### Example Usage to Assign Individuals using specific individuals in a VCF file (sim_genomes_exact)
+```bash
+python run_ped_sim.py -t sim_genomes_exact -n test_data/test_fam.nx -e test_data/load_founders/exact_founder_input.txt -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
+```
 
-`-mu` - mutation rate to use founder initialization + simulations (default = 1e-8)
+### sim_pedigree
 
-`-s` - Seed number to use for the genetic simulation (default = 1)
+### sim_map
 
+### enur_fam 
 
 ### networkx_to_ped
 This feature will convert networkx represented pedigree files into traditional family pedigrees files. 
@@ -238,6 +187,12 @@ This feature will convert networkx represented pedigree files into traditional f
 
 ##### Output
 {output_prefix}.ped - traditional pedigree file
+
+##### Exmple Usage
+```bash
+python run_ped_sim.py -t networkx_to_ped -n test_data/test_fam.nx -o test_data/test_fam
+```
+This will output `test_data/test_fam.ped`
 
 ### ped_to_networkx
 This feature will convert traditional pedigree files into networkx represented family pedigrees. 
@@ -260,6 +215,12 @@ This feature is used for checking the number of explicit, implicit, and descenda
 
 output of this function is outputted on the terminal command line
 
+##### Exmple Usage
+```bash
+python run_ped_sim.py -t ped_to_networkx -p test_data/test_fam.ped -o test_data/test_fam
+```
+This will output `test_data/test_fam.nx`
+
 ### convert_pedigree
 Internal debugging function that can be used to convert networkx represented family pedigree to a slim readable family pedigree.
 
@@ -267,8 +228,10 @@ Required input parameters:
 `-n` - networkx represented family pedigree
 `-o` - output prefix of the file
 
-
-
+```bash
+python run_ped_sim.py -t convert_pedigree -n test_data/test_fam.nx -o test_data/test_fam
+```
+This will output `test_data/test_fam_slim_pedigree.txt`
 ## References
 Haller, B.C., and Messer, P.W. (2019). SLiM 3: Forward genetic simulations beyond the Wright–Fisher
 model. Molecular Biology and Evolution 36(3), 632–637. DOI: https://doi.org/10.1093/molbev/

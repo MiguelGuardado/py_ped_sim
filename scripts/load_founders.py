@@ -77,7 +77,6 @@ class load_founders:
         :return:
         self.founder_genomes - initally assigned to the sample subset of the vcf file that is inputted by the user.
         """
-        self.output_prefix
         sample_query_cmd = f"bcftools query -l {self.vcf_file} > {self.output_prefix}_sample_id.txt"
         subprocess.run([sample_query_cmd], shell=True)
 

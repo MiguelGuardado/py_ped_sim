@@ -76,6 +76,11 @@ class load_founders_exact:
 
     def extract_founders(self):
         """
+        This function is used to assign individuals in the user inputted vcf file to the founders in the inputted
+        pedigree. Since founders are based in ascending order of the pedigree id's.
+
+        1) We will sort the exact founder table to have an ordered list of ID's.
+        2) Subset those individuals via bcftools, the resulting vcf file will not be ordered based on the user inputted table.
 
         :return:
         """
@@ -85,52 +90,17 @@ class load_founders_exact:
         exact_founder.columns = ['vcf_sample_id','network_sample_id']
         exact_founder.sort_values(by=['network_sample_id'], inplace=True)
 
-        np.savetxt('founder_sampleid.txt', exact_founder['vcf_sample_id'], fmt="%s")
+        np.savetxt(f'{self.output_prefix}_sampleid.txt', exact_founder['vcf_sample_id'], fmt="%s")
 
-        subset_vcf_cmd = f'bcftools view -S founder_sampleid.txt {self.vcf_file} -O v -o ' \
+        subset_vcf_cmd = f'bcftools view -S {self.output_prefix}_sampleid.txt {self.vcf_file} -O v -o ' \
                          f'{self.output_prefix}_founder_genomes.vcf'
         subprocess.run([subset_vcf_cmd], shell=True)
 
         #vcf file will now point to the updated vcf subset
         self.founder_genomes = f"{self.output_prefix}_founder_genomes.vcf"
 
-        rm_cmd = "rm founder_sampleid.txt"
+        rm_cmd = f"rm {self.output_prefix}_sampleid.txt"
         subprocess.run([rm_cmd], shell=True)
-
-    def filter_vcf_for_slim(self):
-        """
-
-        This method will be called to update the user's inputted vcf file, this file will only be called under certain
-        conditions of the vcf file.
-        1. The vcf file will be filter for any multi-allelic site, only bi-allelic sites are allowed for current
-        simulations.
-        2. Will remove any empty sites found in the vcf file.
-        3. We will update the AA col found in the info column, to match with SLiM's standard upper case A/C/T/G input
-        :return:
-        """
-        #This will filter any sites that are not bi-allelic
-        shell_cmd = f"bcftools view -m2 -M2 -v snps {self.founder_genomes} -O v -o tmp_snps.vcf"
-        subprocess.run([shell_cmd], shell=True)
-
-        #This will filter any sites that empty, Minor Allel Count == 0
-        shell_cmd = "bcftools filter -e 'MAC == 0' tmp_snps.vcf -O v -o tmp_only_snps.vcf"
-        subprocess.run([shell_cmd], shell=True)
-
-        #Extract a list of each snps infomration for ancestral allele info correction
-        shell_cmd = "bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%REF\n' tmp_only_snps.vcf | bgzip -c > annot.txt.gz"
-        subprocess.run([shell_cmd], shell=True)
-
-        shell_cmd = "tabix -s1 -b2 -e2 annot.txt.gz"
-        subprocess.run([shell_cmd], shell=True)
-
-        self.founder_genomes = f"{self.output_prefix}_slim_corrected.vcf"
-
-        shell_cmd = "bcftools annotate -a annot.txt.gz -c CHROM,POS,REF,ALT,INFO/AA tmp_only_snps.vcf -O v -o " \
-                    f"{self.output_prefix}_slim_corrected.vcf"
-        subprocess.run([shell_cmd], shell=True)
-
-        shell_cmd = "rm tmp_snps.vcf tmp_only_snps.vcf annot.txt.gz annot.txt.gz.tbi"
-        subprocess.run([shell_cmd], shell=True)
 
     def find_genome_length(self):
         """
@@ -153,14 +123,16 @@ class load_founders_exact:
         """
         main function for the class. Where all the magic happens.
         """
+        # Check vcf file if SLiM readable
         self.check_vcf()
 
+        # This function will idenitfy the founders in the vcf file and align them to user input.
         self.extract_founders()
 
-        self.filter_vcf_for_slim()
-
+        # Next we find the genome length.
         self.find_genome_length()
-        #call on convert_pedigree object to convert networkx pedigree into a something SLiM can read.
+
+        # Call on convert_pedigree object to convert networkx pedigree into a something SLiM can read.
         ped_converter = convert_pedigree.convert_pedigree(ped_filepath=self.networkx_file,
                                                           output_prefix=self.output_prefix)
 

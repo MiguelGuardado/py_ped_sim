@@ -50,7 +50,7 @@ def load_args():
     parser.add_argument('-r', '--recomb_rate', default='1e-8', type=str)
     parser.add_argument('-n_gen,', '--number_of_gens', default=12000, type=int)
     parser.add_argument('-n_indiv', '--number_of_indivs', default=1000, type=int)
-    parser.add_argument('-s', '--seed_number', default=np.random.randint(100000, size=1), type=int)
+    parser.add_argument('-s', '--seed_number', default=np.random.randint(100000, size=1)[0], type=int)
 
     return parser.parse_args()
 
@@ -111,7 +111,7 @@ def check_params():
         #Convert rel path to full path
         args.networkx_file = os.path.abspath(args.networkx_file)
 
-    elif args.type_of_sim == 'load_founders':
+    elif args.type_of_sim == 'sim_genomes':
 
         if not os.path.isfile(args.vcf_file):
             raise_filepath_error(args.vcf_file)
@@ -128,7 +128,7 @@ def check_params():
             args.fasta_file = os.path.abspath(args.fasta_file)
 
 
-    elif args.type_of_sim == 'load_founders_exact':
+    elif args.type_of_sim == 'sim_genomes_exact':
         if not os.path.isfile(args.vcf_file):
             raise_filepath_error(args.vcf_file)
         if not os.path.isfile(args.networkx_file):
@@ -146,7 +146,30 @@ def check_params():
                 raise_filepath_error("-fasta_file")
             args.fasta_file = os.path.abspath(args.fasta_file)
 
+    elif args.type_of_sim == 'enur_fam':
+        if not os.path.isfile(args.networkx_file):
+            raise_filepath_error(args.networkx_file)
+        args.networkx_file = os.path.abspath(args.networkx_file)
+
+    elif args.type_of_sim == 'sim_ped':
+        if not os.path.isfile(args.census_filepath):
+            raise_filepath_error(args.census_filepath)
+        args.census_filepath = os.path.abspath(args.census_filepath)
+        print(args.census_filepath)
+        args.years_to_sample = ' '.join(str(x) for x in args.years_to_sample)
+
+    elif args.type_of_sim == 'sim_map':
+        if not os.path.isfile(args.networkx_file):
+            raise_filepath_error(args.networkx_file)
+
+        if not os.path.isfile(args.profiles_file):
+            raise_filepath_error(args.profiles_file)
+
+        args.networkx_file = os.path.abspath(args.networkx_file)
+        args.profiles_file = os.path.abspath(args.profiles_file)
+
     elif args.type_of_sim == 'ped_to_networkx':
+        print(args.ped_file)
         if not os.path.isfile(args.ped_file):
             raise_filepath_error(args.ped_file)
         args.ped_file = os.path.abspath(f"{args.ped_file}")
@@ -179,27 +202,6 @@ def check_params():
             raise_filepath_error(args.networkx_file)
         args.networkx_file = os.path.abspath(args.networkx_file)
 
-    elif args.type_of_sim == 'enur_fam':
-        if not os.path.isfile(args.networkx_file):
-            raise_filepath_error(args.networkx_file)
-        args.networkx_file = os.path.abspath(args.networkx_file)
-
-    elif args.type_of_sim == 'sim_ped':
-        if not os.path.isfile(args.census_filepath):
-            raise_filepath_error(args.census_filepath)
-        args.census_filepath = os.path.abspath(args.census_filepath)
-        args.years_to_sample = ' '.join(str(x) for x in args.years_to_sample)
-
-    elif args.type_of_sim == 'sim_map':
-        if not os.path.isfile(args.networkx_file):
-            raise_filepath_error(args.networkx_file)
-
-        if not os.path.isfile(args.profiles_file):
-            raise_filepath_error(args.profiles_file)
-
-        args.networkx_file = os.path.abspath(args.networkx_file)
-        args.profiles_file = os.path.abspath(args.profiles_file)
-
 #MAIN CLASS: this is where the ped_sim code starts.
 if __name__ == '__main__':
     cur_user_dir = os.getcwd()
@@ -219,7 +221,7 @@ if __name__ == '__main__':
         exit('sim founder under development, dont look here!!')
 
 
-    elif args.type_of_sim == 'load_founders':
+    elif args.type_of_sim == 'sim_genomes':
 
         load_founders.load_founders(
             networkx_file=args.networkx_file,
@@ -232,7 +234,7 @@ if __name__ == '__main__':
             fasta_file=args.fasta_file
         )
 
-    elif args.type_of_sim == 'load_founders_exact':
+    elif args.type_of_sim == 'sim_genomes_exact':
 
         load_founders_exact.load_founders_exact(
             networkx_file=args.networkx_file,
@@ -245,6 +247,23 @@ if __name__ == '__main__':
             seed_number=args.seed_number,
             fasta_file=args.fasta_file
         )
+
+    elif args.type_of_sim == 'enur_fam':
+        if args.output_prefix is None:
+            enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file}'
+        else:
+            enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file} -o {args.output_prefix}'
+        subprocess.run([enur_fam_cmd], shell=True)
+
+    elif args.type_of_sim == 'sim_ped':
+        sim_ped_cmd = f'python scripts/sim_pedigree.py -y {args.years_to_sample} -c {args.census_filepath} ' \
+                      f'-o {args.output_prefix} -s {args.seed_number}'
+        subprocess.run([sim_ped_cmd], shell=True)
+
+    elif args.type_of_sim == 'sim_map':
+        sim_ped_cmd = f'python scripts/sim_map.py -n {args.networkx_file} -pr {args.profiles_file} ' \
+                      f'-p1 {args.prob_1} -p2 {args.prob_2} -o {args.output_prefix}'
+        subprocess.run([sim_ped_cmd], shell=True)
 
     elif args.type_of_sim == 'ped_to_networkx':
         util.convert_ped_to_networkx(ped_file=args.ped_file, output_prefix=args.output_prefix)
@@ -268,23 +287,6 @@ if __name__ == '__main__':
 
     elif args.type_of_sim == 'convert_pedigree':
         convert_pedigree.convert_pedigree(ped_filepath=args.networkx_file, output_prefix=args.output_prefix)
-
-    elif args.type_of_sim == 'enur_fam':
-        if args.output_prefix is None:
-            enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file}'
-        else:
-            enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file} -o {args.output_prefix}'
-        subprocess.run([enur_fam_cmd], shell=True)
-
-    elif args.type_of_sim == 'sim_ped':
-        sim_ped_cmd = f'python scripts/sim_pedigree.py -y {args.years_to_sample} -c {args.census_filepath} ' \
-                      f'-o {args.output_prefix} -s {args.seed_number}'
-        subprocess.run([sim_ped_cmd], shell=True)
-
-    elif args.type_of_sim == 'sim_map':
-        sim_ped_cmd = f'python scripts/sim_map.py -n {args.networkx_file} -pr {args.profiles_file} ' \
-                      f'-p1 {args.prob_1} -p2 {args.prob_2} -o {args.output_prefix}'
-        subprocess.run([sim_ped_cmd], shell=True)
 
     else:
         exit('No input entered, please use -t to specify the action you want preformed')

@@ -36,6 +36,8 @@ User can specify how often this event will happen in the pedigree, in addition t
 Meiosis Count, Generation Depth Difference, and Relation Type.
 
 ### Supplemental Features
+`sim_founders` - This feature utilizes MSPrime to simulate genomes for founders initalization. 
+
 `ped_to_networkx` - This is a helper function that is used to convert a standard pedigree (__.ped__) file into a networkx (__.nx__)  based family pedigree.
 
 `networkx_to_ped` - This is a helper function that is used to convert a networkx based pedigree (__.nx__) file into a standard pedigree (__.ped__) file.
@@ -93,28 +95,33 @@ simulation preformed, or else the software will not run.
 
 ### sim_founder 
 This feature will initialize the founders genome by running an additional genetic simulation prior to the main
-family simulation. 
-#### Required input parameters 
+family simulation. This feature should be used in the event that you do not have empirical genomes to initalize for
+`sim_genomes`. This feature is a simple implementation of a constant demographic model within MSPrime.
+If you are using the conda enviroment, msprime will be installed for use. 
+
+####  Input parameters 
 
 `-t sim_founder`
 
-`-n` - networkx represented family pedigree
+`-l` - networkx represented family pedigree
+
+`-Ne` - number of individals to simulate in the demographic
+
+`-Nf` - number of founders to sample, this number is how many individuals are outputted in the vcf file
+
+`-mu` - mutation rate for the simulation
+
+`-r` - recombination rate for the simulation
 
 `-o` - output prefix of the file
 
-##### Additional parameters  
+#### Example use
+This simulations will simulate 1000 individuals genomes using a starting population of 100000 indiviuals, using 
+a genome length of 100KB.
 
-`-r` - recombination rate to use for founder initialization + simulations (default = 1e-8)
-
-`-mu` - mutation rate to use founder initialization + simulations (default = 1e-8)
-
-`-n_gen` - Number of generations to use for founder genome burn in simulation (default = 12000)
-
-`-n_indiv` - Number of individuals to use for founder genomes burn in simulation (default = 1000)
-
-`-l` - length of the genome to simulation for founder burn in and pedigree simulation.
-
-`-s` - Seed number to use for the genetic simulation (default = 1)
+```bash
+python run_ped_sim.py -t sim_founders -l 100000 -Ne 100000 -Nf 1000 -mu 1e-7 -r 1e-08 -o tmp_founder
+```
 
 ### sim_genome and sim_genome_exact
 

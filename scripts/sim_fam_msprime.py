@@ -20,7 +20,7 @@ def load_args():
     """
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-n', '--n_founder', required=True, type=int)
+    parser.add_argument('-Nf', '--num_founder', type=int, default=5000)
     parser.add_argument('-Ne', '--population_size', type=int, default=10000)
     parser.add_argument('-l', '--genome_length', required=True, type=int)
     parser.add_argument('-s', '--seed_num', type=int, default=npr.randint(1000000000, size=1)[0])
@@ -36,11 +36,11 @@ if __name__ == '__main__':
 
         user_args = load_args()
 
-        founder_size = user_args.n_founder
+        founder_size = user_args.num_founder
         seed_num = user_args.seed_num
         seq_length = user_args.genome_length
         Ne = user_args.population_size
-        output_fp = user_args.output_vcf
+        output_fp = f'{user_args.output_vcf}.vcf'
 
         # Simulate the ancestral populations of a set of founders.
         ts = msprime.sim_ancestry(samples=founder_size,

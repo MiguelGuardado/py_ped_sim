@@ -51,6 +51,8 @@ def load_args():
     parser.add_argument('-n_gen,', '--number_of_gens', default=12000, type=int)
     parser.add_argument('-n_indiv', '--number_of_indivs', default=1000, type=int)
     parser.add_argument('-s', '--seed_number', default=np.random.randint(100000, size=1)[0], type=int)
+    parser.add_argument('-Ne', '--population_size', type=int, default=10000)
+    parser.add_argument('-Nf', '--num_founder', type=int, default=5000)
 
     return parser.parse_args()
 
@@ -93,23 +95,18 @@ def check_params():
 
 
     It might be annoying but we check the input for each simulation type reqested.
-    """
-    if args.output_prefix is not None:
-        args.output_prefix = os.path.abspath(f"{args.output_prefix}")
 
+    The only input files we do not check are for the sim_founders feature!
+
+    """
 #   We need to simulate the founders genomes, so this will check if SLIM input parameters are in the correct format
     if args.type_of_sim == 'sim_founders':
-
-        if not os.path.isfile(args.networkx_file):
-            raise_filepath_error(args.networkx_file)
 
         if not check_exp_input(args.recomb_rate):
             raise_filepath_error(args.recomb_rate)
 
         if not check_exp_input(args.mutation_rate):
             raise_filepath_error(args.mutation_rate)
-        #Convert rel path to full path
-        args.networkx_file = os.path.abspath(args.networkx_file)
 
     elif args.type_of_sim == 'sim_genomes':
 
@@ -218,7 +215,10 @@ if __name__ == '__main__':
 
 #   Run feature provided by the user in the -t parameter, will exit if user inputs non supported feature.'
     if args.type_of_sim == 'sim_founders': # Simulate founders genomes
-        exit('sim founder under development, dont look here!!')
+        sim_founder_cmd = f'python scripts/sim_fam_msprime.py -Nf {args.num_founder} -Ne {args.population_size} ' \
+              f'-l {args.genome_length} -s {args.seed_number} -mu {args.mutation_rate} -r {args.recomb_rate} ' \
+              f'-o {args.output_prefix}'
+        subprocess.run([sim_founder_cmd], shell=True)
 
 
     elif args.type_of_sim == 'sim_genomes':

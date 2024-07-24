@@ -134,8 +134,14 @@ Simulated genomes get outputted as VCF files.
 
 The user will specify the output prefix of the simulations results output file name via the `-o` user parameter.
 
-**Note that VCF files must only have bi-allelic SNPs and have the ancestral allele information (AA) defined to input into SLiM, 
-please preprocess your vcf file with `filter_vcf` before running genomic simulations.**
+**Note that VCF files must only have bi-allelic SNPs and have the ancestral allele information (AA) defined to input into SLiM**
+
+**PLEASE preprocess your vcf file with `filter_vcf` before running genomic simulations.**
+
+**Note that the resulting VCF file will not be aligned to the genome that the user inputs for founder initialization. For example if
+the user input a genome from the second chromosome the outputted vcf will default output as the first chromosome. If it is important 
+to have the same chromosome outputted, please look into our nucleotide specific simulations `-f` which will require a fasta input 
+to your SLiM simulations.**
 
 #### Required input parameters
 `-t sim_genomes` or 
@@ -168,6 +174,10 @@ The file looks similar to a ped file, but the columns for each file will be [Gen
 
 #### Example Usage to Assign Individuals Randomly (sim_genomes)
 ```bash
+#Filter VCF to only include bi-allelic SNPs
+python run_ped_sim.py -t filter_vcf -v test_data/load_founders/lwk_1kg_toydata.vcf
+
+# Simulate Genomes onto pedigree using filtered vcf for founder initalization
 python run_ped_sim.py -t sim_genomes -n test_data/test_fam.nx -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam
 ```
 

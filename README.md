@@ -24,13 +24,13 @@ I can create to make this code more useable! Miguel.Guardado@ucsf.edu
 
 ### Core Features
 
-`sim_genomes` - Simulate genomes based on a fixed pedigree structure. Genetic simulations are preformed within SLiM. Genomes are outputted to the user within a VCF file
-
 `sim_ped` - Simulate a pedigree structure based on inputs of sibship distributions across generations. 
 User can specify their own distributions or use the default distributions provided by US Census (IPUMs)
 
 `sim_map` - Simulate events of Misattributed Paternity, where someone who is presumed to be the individuals father is in fact not the biological father. 
 User can specify how often this event will happen in the pedigree, in addition to how often the new biological father is within the family, or a new individual. 
+
+`sim_genomes` - Simulate genomes based on a fixed pedigree structure. Genetic simulations are preformed within SLiM. Genomes are outputted to the user within a VCF file
 
 `enur_fam` - This feature will determine all pairwise relationships within a family pedigree via 3 statistics. 
 Meiosis Count, Generation Depth Difference, and Relation Type.
@@ -64,6 +64,9 @@ as long as you provide a genome for them inside the vcf file.
 
 ![plot](test_data/images/Fig2.png)
 
+
+# Tutorial / Getting Started 
+
 ## Install Conda Environment
 You will need to have conda installed on your system. To install conda/mini conda onto your system follow this 
 [link](https://conda.io/projects/conda/en/latest/user-guide/install/index.html).
@@ -91,7 +94,69 @@ by the `-t` parameter. This parameter is **necessary** for any simulation prefor
 Each feature of the software must be specified with the `-t` parameter. This parameter is **necessary** for any 
 simulation preformed, or else the software will not run.
 
-## Feature documentation
+## Preforming genomic simulations of a pedigree
+
+### Simulate Founders
+If you already have a vcf of founders this step can be skipped. If you do not have empirical genomes this function will use
+MSPrime (already installed in conda enviroment) to simulate genomes under a constant demographic model.
+
+For example, lets simulate 1000 individuals genomes using a starting population of 10000 individuals, using a genome length of 100KB
+
+```bash
+python run_ped_sim.py -t sim_founders -l 100000 -Ne 100000 -Nf 1000 -mu 1e-7 -r 1e-08 -o tmp_founder
+```
+
+### Founder VCF Set Up
+**Note that VCF files must only have bi-allelic SNPs and have the ancestral allele information (AA) defined to input into SLiM**
+
+To ensure your VCF file is set up correctly, you can use filter_vcf before running genomic simulations
+
+```bash
+python run_ped_sim.py -t filter_vcf -v test_data/load_founders/lwk_1kg_toydata.vcf
+```
+
+### Set up Networkx File
+One of the required inputs is a networx file describing the pedigree that the genomes will be simulated onto. 
+if you already have a pedigree file the ped_to_networkx feature can be used to convert it into networx format. 
+
+```bash
+python run_ped_sim.py -t ped_to_networkx -p test_data/test_fam.ped -o test_data/test_fam
+```
+
+### Check Founders
+To check that the founders in the pedigree are as expected you can run the following command 
+
+```bash
+python run_ped_sim.py -t check_founders -n test_data/test_fam.nx
+```
+### Simulate Genomes onto Pedigree
+
+Now that you have all of the required input files you are ready to simulate genomes onto the pedigree! This can be
+preformed by either selecting founders from the input vcf (sim_genomes) or by explicitly assigning genomes to the founders 
+(sim_genomes_exact). Here are examples of each. 
+
+#### Assigning founders randomly
+```bash
+python run_ped_sim.py -t sim_genomes -n test_data/test_fam.nx -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
+```
+
+
+#### Explicitly assigning genomes to founders 
+```bash
+python run_ped_sim.py -t sim_genomes_exact -n test_data/test_fam.nx -e test_data/load_founders/exact_founder_input.txt -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
+```
+
+### Simualte Genomes under nucleotide specific simualtions
+Note that the resulting VCF file will not be aligned to the genome that the user inputs for founder initialization. 
+For example if the user input a genome from the second chromosome the outputted vcf will default output as the first 
+chromosome. Also the position of each SNP will be lost and defults to a SNP with a Ref of A and alt of T. 
+If it is important to have the same chromosome outputted, you can use the -f which will require a fasta input to your SLiM simulations when running sim_genomes or sim_genomes_exact. 
+
+```bash 
+python run_ped_sim.py -t sim_genomes -f test_data/load_founders/test_fam_fasta.fa -n test_data/test_fam.nx -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
+```
+
+# Feature documentation
 
 ### sim_founder 
 This feature will initialize the founders genome by running an additional genetic simulation prior to the main

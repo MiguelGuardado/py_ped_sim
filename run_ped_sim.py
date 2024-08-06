@@ -41,7 +41,7 @@ def load_args():
     parser.add_argument('-p2', '--prob_2', type=float, default=0.50)
     parser.add_argument('-y', '--years_to_sample', nargs='+', type=int)
     parser.add_argument('-n', '--networkx_file', type=str)
-    parser.add_argument('-c', '--census_filepath', type=str, default='scripts/ipumps_sibship_dist.txt')
+    parser.add_argument('-c', '--census_filepath', type=str)
     parser.add_argument('-f', '--fasta_file', type=str)
     parser.add_argument('-e', '--exact_founder_id', type=str)
     parser.add_argument('-o', '--output_prefix', type=str)
@@ -149,10 +149,14 @@ def check_params():
         args.networkx_file = os.path.abspath(args.networkx_file)
 
     elif args.type_of_sim == 'sim_ped':
-        if not os.path.isfile(args.census_filepath):
-            raise_filepath_error(args.census_filepath)
-        args.census_filepath = os.path.abspath(args.census_filepath)
-        print(args.census_filepath)
+        if args.census_filepath != None:
+            # raise_filepath_error(args.census_filepath)
+            args.census_filepath = os.path.abspath(args.census_filepath)
+        else:
+            args.census_filepath = 'scripts/ipumps_sibship_dist.txt'
+
+        args.output_prefix = os.path.abspath(f"{args.output_prefix}")
+        print(args.output_prefix)
         args.years_to_sample = ' '.join(str(x) for x in args.years_to_sample)
 
     elif args.type_of_sim == 'sim_map':
@@ -166,7 +170,6 @@ def check_params():
         args.profiles_file = os.path.abspath(args.profiles_file)
 
     elif args.type_of_sim == 'ped_to_networkx':
-        print(args.ped_file)
         if not os.path.isfile(args.ped_file):
             raise_filepath_error(args.ped_file)
         args.ped_file = os.path.abspath(f"{args.ped_file}")

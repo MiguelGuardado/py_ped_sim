@@ -290,7 +290,11 @@ def filter_vcf_for_slim(vcf_file):
     subprocess.run([shell_cmd], shell=True)
 
     # This will filter any sites that empty, Minor Allel Count == 0
-    shell_cmd = f"bcftools filter -e 'MAC == 0' {vcf_prefix}_tmp_snps.vcf -O v -o {vcf_prefix}_tmp_only_snps.vcf"
+    shell_cmd = f"bcftools filter -e 'MAC == 0' {vcf_prefix}_tmp_snps.vcf -O v -o {vcf_prefix}_tmp_rmmac.vcf"
+    subprocess.run([shell_cmd], shell=True)
+
+    # This will remove potential situation of triallelic SNPs (same pos with diff alt alleles)
+    shell_cmd = f"bcftools norm -d snps {vcf_prefix}_tmp_rmmac.vcf -O v -o {vcf_prefix}_tmp_only_snps.vcf"
     subprocess.run([shell_cmd], shell=True)
 
     # Extract a list of each snps infomration for ancestral allele info correction
@@ -316,12 +320,12 @@ def filter_vcf_for_slim(vcf_file):
 
     # Annotate the AA column and output vcf file to the self.founder_vcf_filepath variable
     shell_cmd = f"bcftools annotate -a {vcf_prefix}_annot.txt.gz -c CHROM,POS,REF,ALT,INFO/AA " \
-                f"{vcf_prefix}_tmp_only_snps_winfo.vcf -O v -o {vcf_prefix}_slim_fil.vcf"
+                f"{vcf_prefix}_tmp_only_snps_winfo.vcf -O z -o {vcf_prefix}_slim_fil.vcf.gz"
     subprocess.run([shell_cmd], shell=True)
 
     # This last command will remove temporary files that were created to annotate the AA columns.
     shell_cmd = f'rm {vcf_prefix}_tmp_only_snps* {vcf_prefix}_annot.txt.* {vcf_prefix}_annots* ' \
-                f'{vcf_prefix}_tmp_snps.vcf '
+                f'{vcf_prefix}_tmp_snps.vcf {vcf_prefix}_tmp_rmmac.vcf'
     subprocess.run([shell_cmd], shell=True)
 
 
@@ -364,3 +368,25 @@ def find_founders(networkx_file, shell_output=False):
         return
 
     return len(explicit_founders) + len(implicit_founders)
+
+
+def check_fasta(fasta_filepath):
+    '''
+    This function is created to check the input fasta file required to preform nucleotide specific simulations
+    within SLiM. SLiM requires that the ancestral sequence be composed of A/C/G/T nucleotides. N's are not
+    considered legal option. This function will find any non A/C/G/T character and sub it to an A.
+
+    We will use sed and awk to preform these actions.
+
+    :param fasta_filepath: filepath to the fasta file.
+    :return:
+    '''
+
+    fasta_filepath_out = fasta_filepath.split('.')[0]
+    fasta_filepath_out = f'{fasta_filepath_out}_cor.fa'
+
+    # This command will replace any non ACGT with an A, and then capitalize all nucleotide positions.
+    cmd = f"sed '1!s/[^ACGT]/A/g' {fasta_filepath} | awk 'NR==1 {{print; next}} {{print toupper($0)}}' > {fasta_filepath_out}"
+    subprocess.run([cmd], shell=True)
+
+    return fasta_filepath_out

@@ -156,7 +156,6 @@ def check_params():
             args.census_filepath = 'scripts/ipumps_sibship_dist.txt'
 
         args.output_prefix = os.path.abspath(f"{args.output_prefix}")
-        print(args.output_prefix)
         args.years_to_sample = ' '.join(str(x) for x in args.years_to_sample)
 
     elif args.type_of_sim == 'sim_map':
@@ -201,6 +200,7 @@ def check_params():
         if not os.path.isfile(args.networkx_file):
             raise_filepath_error(args.networkx_file)
         args.networkx_file = os.path.abspath(args.networkx_file)
+        args.output_prefix = os.path.abspath(f"{args.output_prefix}")
 
 #MAIN CLASS: this is where the ped_sim code starts.
 if __name__ == '__main__':

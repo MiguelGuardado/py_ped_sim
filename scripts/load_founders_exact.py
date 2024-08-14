@@ -170,7 +170,10 @@ class load_founders_exact:
                                 f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'],
                                shell=True)
         else:
+
+            self.fasta_file = util.check_fasta(self.fasta_file)
             self.fasta_file = f"'{self.fasta_file}'"
+
             if (ped_converter.num_implicit > 0):
                 self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
                 subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'

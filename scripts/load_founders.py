@@ -32,7 +32,7 @@ class load_founders:
 
     """
     def __init__(self, networkx_file, cur_dir, out_pref, vcf_file,
-                 mutation_rate, recomb_rate, seed_number, fasta_file=None):
+                 mutation_rate, recomb_rate, seed_number, fasta_file=None, recomb_map=None):
         self.networkx_file = networkx_file
         self.num_founder = int(util.find_founders(self.networkx_file))
         self.cur_dir = cur_dir
@@ -46,7 +46,9 @@ class load_founders:
         self.recomb_rate = recomb_rate
         self.seed_number = seed_number
         self.fasta_file = fasta_file
+        self.recomb_map = recomb_map
         self.is_nuc_seq = (self.fasta_file is None)
+        self.is_recomb_map = (self.recomb_map is None)
         self.run_simulation()
 
 
@@ -156,7 +158,6 @@ class load_founders:
         rm_cmd = f"rm {implicit_founders_filepath} {explicit_founders_filepath}"
         subprocess.run([rm_cmd], shell=True)
 
-
     def find_genome_length(self):
         """
         Internal function inside the class to initalize self.genome_length based the last position found inside the
@@ -173,8 +174,6 @@ class load_founders:
         vcf_indiv_line, err = process.communicate()
         vcf_indiv_line = vcf_indiv_line.decode('ascii').split("\t")
         self.genome_length = int(vcf_indiv_line[1])
-
-
 
     def run_simulation(self):
         """
@@ -202,6 +201,34 @@ class load_founders:
 #       If the user provides a fasta file input, then we will run the slim script that is nucleotide specific.
 #       for all other uses, where the nucleotide positions are not desired, we will use a simulations that is not
 #       nucleotide sepecific.
+
+        # We have many potenital simulations to run, in the event users want nucleotide specific simulation, implicit vs explicit
+        # founder initialization simulations, or if a user inputs a recombination map
+
+        # # Nucleotide specific simulation, with implicit founders, and a recombination map.
+        # if self.is_nuc_seq and ped_converter.num_implicit > 0 and self.is_recomb_map:
+        #     pass
+        #
+        # # Non-Nucleotide specific simulation, with implicit founders, and a recombination map.
+        # elif not self.is_nuc_seq and ped_converter.num_implicit > 0 and self.is_recomb_map:
+        #     pass
+        #
+        # # Nucleotide specific simulation, with implicit founders, and a recombination map.
+        # elif self.is_nuc_seq and ped_converter.num_implicit == 0 and self.is_recomb_map:
+        #     pass
+        #
+        # # Nucleotide specific simulation, with implicit founders, and a recombination map.
+        # elif not self.is_nuc_seq and ped_converter.num_implicit == 0 and self.is_recomb_map:
+        #     pass
+        #
+        # # Nucleotide specific simulation, with implicit founders, and a recombination map.
+        # elif self.is_nuc_seq and ped_converter.num_implicit == 0 and not self.is_recomb_map:
+        #     pass
+        #
+        # # Nucleotide specific simulation, with implicit founders, and a recombination map.
+        # elif not self.is_nuc_seq and ped_converter.num_implicit == 0 and not self.is_recomb_map:
+        #     pass
+        # 562607
 
         if (self.is_nuc_seq):
             if (ped_converter.num_implicit > 0):
@@ -231,7 +258,9 @@ class load_founders:
                                 f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'],
                                shell=True)
         else:
+            self.fasta_file = util.check_fasta(self.fasta_file)
             self.fasta_file = f"'{self.fasta_file}'"
+
             if (ped_converter.num_implicit > 0):
 
                 self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
@@ -248,7 +277,6 @@ class load_founders:
                                 f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'], shell=True)
             else:
                 self.founder_genomes = f"'{self.founder_genomes}'"
-
                 subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
                                 f' -d founder_filepath="{ped_converter.founder_filepath}"'
                                 f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'

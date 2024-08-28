@@ -112,7 +112,7 @@ python run_ped_sim.py -t sim_founders -l 100000 -Ne 100000 -Nf 1000 -mu 1e-7 -r 
 To ensure your VCF file is set up correctly, you can use filter_vcf before running genomic simulations
 
 ```bash
-python run_ped_sim.py -t filter_vcf -v test_data/load_founders/lwk_1kg_toydata.vcf
+python run_ped_sim.py -t filter_vcf -v test_data/lwk_1kg_toydata.vcf
 ```
 
 ### Set up Networkx File
@@ -137,13 +137,13 @@ preformed by either selecting founders from the input vcf (sim_genomes) or by ex
 
 #### Assigning founders randomly
 ```bash
-python run_ped_sim.py -t sim_genomes -n test_data/test_fam.nx -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
+python run_ped_sim.py -t sim_genomes -n test_data/test_fam.nx -v test_data/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
 ```
 
 
 #### Explicitly assigning genomes to founders 
 ```bash
-python run_ped_sim.py -t sim_genomes_exact -n test_data/test_fam.nx -e test_data/load_founders/exact_founder_input.txt -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
+python run_ped_sim.py -t sim_genomes_exact -n test_data/test_fam.nx -e test_data/exact_founder_input.txt -v test_data/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
 ```
 
 ### Simualte Genomes under nucleotide specific simualtions
@@ -153,7 +153,7 @@ chromosome. Also the position of each SNP will be lost and defults to a SNP with
 If it is important to have the same chromosome outputted, you can use the -f which will require a fasta input to your SLiM simulations when running sim_genomes or sim_genomes_exact. 
 
 ```bash 
-python run_ped_sim.py -t sim_genomes -f test_data/load_founders/test_fam_fasta.fa -n test_data/test_fam.nx -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
+python run_ped_sim.py -t sim_genomes -f test_data/test_fam_fasta.fa -n test_data/test_fam.nx -v test_data/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
 ```
 
 ### Simulate Genomes with a Recombination Map 
@@ -243,7 +243,7 @@ to your SLiM simulations.**
 
 `-o` - output prefix of the file
 
-`-e` - exact founder table (space delimited table with 2 columns [vcf_id, founder_id], refer to `test_data/load_founders/exact_founder_input.txt`)
+`-e` - exact founder table (space delimited table with 2 columns [vcf_id, founder_id], refer to `test_data/exact_founder_input.txt`)
 
 #### Additional parameters
 `-f` - fasta file for the inputted vcf file, this will activate nucleotide specifc simulations
@@ -265,15 +265,15 @@ The file looks similar to a ped file, but the columns for each file will be [Gen
 #### Example Usage to Assign Individuals Randomly (sim_genomes)
 ```bash
 #Filter VCF to only include bi-allelic SNPs
-python run_ped_sim.py -t filter_vcf -v test_data/load_founders/lwk_1kg_toydata.vcf
+python run_ped_sim.py -t filter_vcf -v test_data/lwk_1kg_toydata.vcf
 
 # Simulate Genomes onto pedigree using filtered vcf for founder initalization
-python run_ped_sim.py -t sim_genomes -n test_data/test_fam.nx -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam
+python run_ped_sim.py -t sim_genomes -n test_data/test_fam.nx -v test_data/lwk_1kg_toydata_slim_fil.vcf -o testfam
 ```
 
 #### Example Usage to Assign Individuals using specific individuals in a VCF file (sim_genomes_exact)
 ```bash
-python run_ped_sim.py -t sim_genomes_exact -n test_data/test_fam.nx -e test_data/load_founders/exact_founder_input.txt -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
+python run_ped_sim.py -t sim_genomes_exact -n test_data/test_fam.nx -e test_data/exact_founder_input.txt -v test_data/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
 ```
 
 ### sim_pedigree

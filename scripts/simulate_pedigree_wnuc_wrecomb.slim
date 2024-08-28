@@ -33,9 +33,10 @@ initialize() {
  	initializeGenomicElement(g1, 0, L-1);
 
  	// THIS CODE IS USED TO READ THE RECOMBINATION MAP
- 	map = readCSV(recomb_map, c("ends", "rates"), sep="\t");
+ 	map = readCSV(recomb_map, c("ends", "rates"), sep=" ");
     ends = map.getValue("ends");
-    ends = c(ends[1:(size(ends)-1)] - 2, 23011543);
+    print(ends);
+    ends = c(ends[1:(size(ends)-1)]-2, L-1);
     rates = map.getValue("rates") * 1e-8;
     initializeRecombinationRate(rates, ends);
 	
@@ -96,7 +97,7 @@ reproduction(p2){
 	if(founder_list[length(founder_list)-1]>0){
 	    sim.addSubpop("p2",founder_list[(length(founder_list)-1)]);
 	    p2.individuals.tag = 1:length(p2.individuals);
-	    p2.genomes.readFromVCF(imp_founder_vcf_filepath);//Reads vcf files from founder burn in from "BurnInPedigree"
+	    p2.genomes.readFromVCF(imp_founder_vcf_filepath, m1);//Reads vcf files from founder burn in from "BurnInPedigree"
 	}
 
 

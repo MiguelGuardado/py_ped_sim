@@ -4,7 +4,7 @@
 Recent Update: 10/23/2021
 @author: Miguel Guardado Miguel.Guardado@ucsf.edu
 """
-
+import pandas as pd
 import numpy as np
 import subprocess
 from scripts import convert_pedigree
@@ -32,7 +32,7 @@ class load_founders:
 
     """
     def __init__(self, networkx_file, cur_dir, out_pref, vcf_file,
-                 mutation_rate, recomb_rate, seed_number, fasta_file=None, recomb_map=None):
+                 mutation_rate, recomb_rate, seed_number, fasta_file=None, recomb_map=None, exact_founder_id=None):
         self.networkx_file = networkx_file
         self.num_founder = int(util.find_founders(self.networkx_file))
         self.cur_dir = cur_dir
@@ -46,11 +46,12 @@ class load_founders:
         self.recomb_rate = recomb_rate
         self.seed_number = seed_number
         self.fasta_file = fasta_file
+        self.exact_founder_id = exact_founder_id
         self.recomb_map = recomb_map
-        self.is_nuc_seq = (self.fasta_file is None)
-        self.is_recomb_map = (self.recomb_map is None)
+        self.is_nuc_seq = (self.fasta_file is not None) ## logical to determine if a nucleotide specific simualtion will be run.
+        self.is_recomb_map = (self.recomb_map is not None) ## logical to determine if a recombination map is provided.
+        self.is_exact_sim = (self.exact_founder_id is not None)  ## logical to determine if a recombination map is provided.
         self.run_simulation()
-
 
 
     def check_vcf(self):
@@ -66,13 +67,7 @@ class load_founders:
             print(f"Number of founders inside family pedigree: {self.num_founder}")
             exit(0)
 
-
-
     def extract_founders(self):
-        '''
-        This seems to be screwing up the parrallelization
-        :return:
-        '''
         """
         Internal function, this will extract the list of sample id to be used for the founders genome,
         load_founder will assign the founders randomly across the vcf file.
@@ -96,6 +91,34 @@ class load_founders:
         rm_cmd = f"rm {self.output_prefix}_founder_sampleid.txt {self.output_prefix}_sample_id.txt"
         subprocess.run([rm_cmd], shell=True)
 
+    def extract_founders_exact(self):
+        """
+               This function is used to assign individuals in the user inputted vcf file to the founders in the inputted
+               pedigree. Since founders are based in ascending order of the pedigree id's.
+
+               1) We will sort the exact founder table to have an ordered list of ID's.
+               2) Subset those individuals via bcftools, the resulting vcf file will not be ordered based on the user inputted table.
+
+               :return:
+               """
+
+        exact_founder_filepath = self.exact_founder_id
+        exact_founder = pd.read_csv(exact_founder_filepath, header=None, index_col=None, sep=' ')
+        exact_founder.columns = ['vcf_sample_id', 'network_sample_id']
+        exact_founder.sort_values(by=['network_sample_id'], inplace=True)
+
+        np.savetxt(f'{self.output_prefix}_sampleid.txt', exact_founder['vcf_sample_id'], fmt="%s")
+
+        subset_vcf_cmd = f'bcftools view -S {self.output_prefix}_sampleid.txt {self.vcf_file} -O v -o ' \
+                         f'{self.output_prefix}_founder_genomes.vcf'
+        subprocess.run([subset_vcf_cmd], shell=True)
+
+        # vcf file will now point to the updated vcf subset
+        self.founder_genomes = f"{self.output_prefix}_founder_genomes.vcf"
+
+        rm_cmd = f"rm {self.output_prefix}_sampleid.txt"
+        subprocess.run([rm_cmd], shell=True)
+
     def split_founders(self, founder_vcf_filepath, num_explicit, num_implicit):
         """
         This function split the founder vcf file into implicit vs explict vcf files. This function will only be called
@@ -116,6 +139,7 @@ class load_founders:
         implicit route of the code. So I am not sure why this happens but should figure out one day..... but not today.
 
         """
+
         #Compress and index the vcf file so we can use bcftools downsteam to seperate implicit/explicit founder
         subprocess.run([f'bcftools view {founder_vcf_filepath} -O z -o {founder_vcf_filepath}.gz'], shell=True)
         subprocess.run([f'bcftools index {founder_vcf_filepath}.gz'], shell=True)
@@ -183,110 +207,197 @@ class load_founders:
         self.check_vcf()
 
         # This function will identify the individuals in the vcf file to use as founders genomes
-        self.extract_founders()
+        if self.is_exact_sim:
+            self.extract_founders_exact()
+        else:
+            self.extract_founders()
 
-        # This will help initialize the genome length from the vcf file.
+        # This will initialize the genome length from the vcf file.
         self.find_genome_length()
 
-        #call on convert_pedigree object to convert networkx pedigree into a SLiM readable readable
+        # This willn call the convert_pedigree object to convert the pedigree into a format SLiM can read to preform genome simualtions.
         ped_converter = convert_pedigree.convert_pedigree(ped_filepath=self.networkx_file,
                                                           output_prefix=self.output_prefix)
 
-#       double quote syntax is required for SLiM to have command line input parameters
+        # Double quote syntax is required for SLiM to have command line input parameters. ANNOYING!!!
         self.output_vcf = f"'{self.output_prefix}_genomes.vcf'"
         ped_converter.slim_filepath = f"'{ped_converter.slim_filepath}'"
         ped_converter.founder_filepath = f"'{ped_converter.founder_filepath}'"
 
+        # We have many potenital genomic simulations of pedigrees to run, in the event users want nucleotide specific
+        # simulation, implicit vs explicit founder initialization simulations, or if a user inputs a recombination map
 
-#       If the user provides a fasta file input, then we will run the slim script that is nucleotide specific.
-#       for all other uses, where the nucleotide positions are not desired, we will use a simulations that is not
-#       nucleotide sepecific.
+        ################################################################################################################
+        # Nucleotide specific simulation, with implicit founders, and a recombination map.
+        ################################################################################################################
+        if self.is_nuc_seq and ped_converter.num_implicit > 0 and self.is_recomb_map:
+            print('Nucleotide specific simulation, with implicit founder, and recombination map')
 
-        # We have many potenital simulations to run, in the event users want nucleotide specific simulation, implicit vs explicit
-        # founder initialization simulations, or if a user inputs a recombination map
+            # Initalize implicit and explicit founders
+            self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
 
-        # # Nucleotide specific simulation, with implicit founders, and a recombination map.
-        # if self.is_nuc_seq and ped_converter.num_implicit > 0 and self.is_recomb_map:
-        #     pass
-        #
-        # # Non-Nucleotide specific simulation, with implicit founders, and a recombination map.
-        # elif not self.is_nuc_seq and ped_converter.num_implicit > 0 and self.is_recomb_map:
-        #     pass
-        #
-        # # Nucleotide specific simulation, with implicit founders, and a recombination map.
-        # elif self.is_nuc_seq and ped_converter.num_implicit == 0 and self.is_recomb_map:
-        #     pass
-        #
-        # # Nucleotide specific simulation, with implicit founders, and a recombination map.
-        # elif not self.is_nuc_seq and ped_converter.num_implicit == 0 and self.is_recomb_map:
-        #     pass
-        #
-        # # Nucleotide specific simulation, with implicit founders, and a recombination map.
-        # elif self.is_nuc_seq and ped_converter.num_implicit == 0 and not self.is_recomb_map:
-        #     pass
-        #
-        # # Nucleotide specific simulation, with implicit founders, and a recombination map.
-        # elif not self.is_nuc_seq and ped_converter.num_implicit == 0 and not self.is_recomb_map:
-        #     pass
-        # 562607
-
-        if (self.is_nuc_seq):
-            if (ped_converter.num_implicit > 0):
-
-                self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
-
-                subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
-                                f' -d founder_filepath="{ped_converter.founder_filepath}"'
-                                f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'
-                                f' -d imp_founder_vcf_filepath="{self.implicit_founders_vcf_filepath}"'
-                                f' -d genome_length="{self.genome_length}"'
-                                f' -d mu_rate="{self.mutation_rate}"'
-                                f' -d recomb_rate="{self.recomb_rate}"'
-                                f' -s {self.seed_number}'
-                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'], shell=True)
-            else:
-
-                self.founder_genomes = f"'{self.founder_genomes}'"
-
-                subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
-                                f' -d founder_filepath="{ped_converter.founder_filepath}"'
-                                f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
-                                f' -d genome_length="{self.genome_length}"'
-                                f' -d mu_rate="{self.mutation_rate}"'
-                                f' -d recomb_rate="{self.recomb_rate}"'
-                                f' -s {self.seed_number}'
-                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'],
-                               shell=True)
-        else:
+            # Correct fasta and add notation for SLiM
             self.fasta_file = util.check_fasta(self.fasta_file)
             self.fasta_file = f"'{self.fasta_file}'"
+            self.recomb_map = f"'{self.recomb_map}'"
 
-            if (ped_converter.num_implicit > 0):
+            # Run SLiM Command
+            subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+                            f' -d founder_filepath="{ped_converter.founder_filepath}"'
+                            f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'
+                            f' -d imp_founder_vcf_filepath="{self.implicit_founders_vcf_filepath}"'
+                            f' -d genome_length="{self.genome_length}"'
+                            f' -d mu_rate="{self.mutation_rate}"'
+                            f' -d recomb_map="{self.recomb_map}"'
+                            f' -s {self.seed_number}'
+                            f' -d fasta_file="{self.fasta_file}"'
+                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc_wrecomb.slim'], shell=True)
 
-                self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
+        ################################################################################################################
+        # Nucleotide specific simulation, no implicit founders, and a recombination map
+        ################################################################################################################
+        if self.is_nuc_seq and ped_converter.num_implicit == 0 and self.is_recomb_map:
+            print('Nucleotide specific simulation, no implicit founder, and recombination map')
 
-                subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
-                                f' -d founder_filepath="{ped_converter.founder_filepath}"'
-                                f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'
-                                f' -d imp_founder_vcf_filepath="{self.implicit_founders_vcf_filepath}"'
-                                f' -d genome_length="{self.genome_length}"'
-                                f' -d mu_rate="{self.mutation_rate}"'
-                                f' -d recomb_rate="{self.recomb_rate}"'
-                                f' -s {self.seed_number}'
-                                f' -d fasta_file="{self.fasta_file}"'
-                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'], shell=True)
-            else:
-                self.founder_genomes = f"'{self.founder_genomes}'"
-                subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
-                                f' -d founder_filepath="{ped_converter.founder_filepath}"'
-                                f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
-                                f' -d genome_length="{self.genome_length}"'
-                                f' -d mu_rate="{self.mutation_rate}"'
-                                f' -d recomb_rate="{self.recomb_rate}"'
-                                f' -s {self.seed_number}'
-                                f' -d fasta_file="{self.fasta_file}"'
-                                f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'],
-                               shell=True)
+
+            # Correct fasta and add notation for SLiM
+            self.fasta_file = util.check_fasta(self.fasta_file)
+            self.fasta_file = f"'{self.fasta_file}'"
+            self.founder_genomes = f"'{self.founder_genomes}'"
+            self.recomb_map = f"'{self.recomb_map}'"
+
+            # Run SLiM Command
+            subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+                            f' -d founder_filepath="{ped_converter.founder_filepath}"'
+                            f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
+                            f' -d genome_length="{self.genome_length}"'
+                            f' -d mu_rate="{self.mutation_rate}"'
+                            f' -d recomb_map="{self.recomb_map}"'
+                            f' -s {self.seed_number}'
+                            f' -d fasta_file="{self.fasta_file}"'
+                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc_wrecomb.slim'], shell=True)
+
+        ################################################################################################################
+        # Non-Nucleotide specific simulation, with implicit founders, and a recombination map
+        ################################################################################################################
+        if not self.is_nuc_seq and ped_converter.num_implicit > 0 and self.is_recomb_map:
+            print('Non-Nucleotide specific simulation, with implicit founder, and recombination map')
+
+            # Idenitfy implicit and explicit founders
+            self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
+
+            # Get variables ready to input into SLiM
+            self.founder_genomes = f"'{self.founder_genomes}'"
+            self.recomb_map = f"'{self.recomb_map}'"
+
+            # Run SLiM Command
+            subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+                            f' -d founder_filepath="{ped_converter.founder_filepath}"'
+                            f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'
+                            f' -d imp_founder_vcf_filepath="{self.implicit_founders_vcf_filepath}"'
+                            f' -d genome_length="{self.genome_length}"'
+                            f' -d mu_rate="{self.mutation_rate}"'
+                            f' -d recomb_map="{self.recomb_map}"'
+                            f' -s {self.seed_number}'
+                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wrecomb.slim'], shell=True)
+
+
+        ################################################################################################################
+        # Non-Nucleotide specific simulation, no implicit founders, and a recombination map
+        ################################################################################################################
+        if not self.is_nuc_seq and ped_converter.num_implicit == 0 and self.is_recomb_map:
+            print('Non-Nucleotide specific simulation, no implicit founder, and recombination map')
+
+
+            # Get variables ready to input into SLiM
+            self.founder_genomes = f"'{self.founder_genomes}'"
+            self.recomb_map = f"'{self.recomb_map}'"
+
+            subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+                            f' -d founder_filepath="{ped_converter.founder_filepath}"'
+                            f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
+                            f' -d genome_length="{self.genome_length}"'
+                            f' -d mu_rate="{self.mutation_rate}"'
+                            f' -d recomb_map="{self.recomb_map}"'
+                            f' -s {self.seed_number}'
+                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wrecomb.slim'],
+                           shell=True)
+
+        ################################################################################################################
+        # Nucleotide specific simulation, with implicit founders, and no recombination map.
+        ################################################################################################################
+        if self.is_nuc_seq and ped_converter.num_implicit > 0 and not self.is_recomb_map:
+            print('Nucleotide specific simulation, with implicit founder, and no recombination map')
+
+            # Initalize implicit and explicit founders
+            self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
+
+            self.founder_genomes = f"'{self.founder_genomes}'"
+
+            subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+                            f' -d founder_filepath="{ped_converter.founder_filepath}"'
+                            f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'
+                            f' -d imp_founder_vcf_filepath="{self.implicit_founders_vcf_filepath}"'
+                            f' -d genome_length="{self.genome_length}"'
+                            f' -d mu_rate="{self.mutation_rate}"'
+                            f' -d recomb_rate="{self.recomb_rate}"'
+                            f' -s {self.seed_number}'
+                            f' -d fasta_file="{self.fasta_file}"'
+                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'], shell=True)
+        ################################################################################################################
+        # Nucleotide specific simulation, no implicit founders, and no recombination map
+        ################################################################################################################
+        if self.is_nuc_seq and ped_converter.num_implicit == 0 and not self.is_recomb_map:
+            print('Nucleotide specific simulation, no implicit founder, and no recombination map')
+
+            self.founder_genomes = f"'{self.founder_genomes}'"
+            subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+                            f' -d founder_filepath="{ped_converter.founder_filepath}"'
+                            f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
+                            f' -d genome_length="{self.genome_length}"'
+                            f' -d mu_rate="{self.mutation_rate}"'
+                            f' -d recomb_rate="{self.recomb_rate}"'
+                            f' -s {self.seed_number}'
+                            f' -d fasta_file="{self.fasta_file}"'
+                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'],
+                           shell=True)
+        ################################################################################################################
+        # Non-Nucleotide specific simulation, with implicit founders, and no recombination map
+        ################################################################################################################
+        if not self.is_nuc_seq and ped_converter.num_implicit > 0 and not self.is_recomb_map:
+            print('Non-Nucleotide specific simulation, no implicit founder, and no recombination map')
+            # Initalize implicit and explicit founders
+            self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
+
+            subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+                            f' -d founder_filepath="{ped_converter.founder_filepath}"'
+                            f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'
+                            f' -d imp_founder_vcf_filepath="{self.implicit_founders_vcf_filepath}"'
+                            f' -d genome_length="{self.genome_length}"'
+                            f' -d mu_rate="{self.mutation_rate}"'
+                            f' -d recomb_rate="{self.recomb_rate}"'
+                            f' -s {self.seed_number}'
+                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'], shell=True)
+
+        ################################################################################################################
+        # Non-Nucleotide specific simulation, no implicit founders, and no recombination map
+        ################################################################################################################
+        if not self.is_nuc_seq and ped_converter.num_implicit == 0 and not self.is_recomb_map:
+            print('Non-Nucleotide specific simulation, no implicit founder, and recombination map')
+
+            self.founder_genomes = f"'{self.founder_genomes}'"
+
+            subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+                            f' -d founder_filepath="{ped_converter.founder_filepath}"'
+                            f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
+                            f' -d genome_length="{self.genome_length}"'
+                            f' -d mu_rate="{self.mutation_rate}"'
+                            f' -d recomb_rate="{self.recomb_rate}"'
+                            f' -s {self.seed_number}'
+                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'],
+                           shell=True)
+
+
         # Now that the simulation is complete, this will reindex the vcf files sample ID to match the
         # id found in the family pedigree graph
         util.update_vcf_header(f'{self.output_prefix}_genomes.vcf', self.networkx_file)
@@ -294,9 +405,71 @@ class load_founders:
         # Add CONTIG header to the VCF file
         util.add_contig(f'{self.output_prefix}_genomes.vcf')
 
+        # Finally we will correct the chr name based on the chr number used in the vcf output
+        util.correct_chr_in_vcf(f'{self.output_prefix}_genomes.vcf', self.vcf_file)
 
-        #  Now that the simulation is done, we will delete all files not desired by user, feel free to undelete these
-        #  if you want these outputs.
-        rm_cmd = f"rm {self.founder_genomes}* {ped_converter.founder_filepath}" \
-                 f" {self.explicit_founders_vcf_filepath} {self.implicit_founders_vcf_filepath}"
-        subprocess.run([rm_cmd], shell=True)
+        # #  Now that the simulation is done, we will delete all files not desired by user, feel free to undelete these
+        # #  if you want these outputs.
+        # rm_cmd = f"rm {self.founder_genomes}* {ped_converter.founder_filepath}" \
+        #          f" {self.explicit_founders_vcf_filepath} {self.implicit_founders_vcf_filepath}"
+        # subprocess.run([rm_cmd], shell=True)
+
+        # if (self.is_nuc_seq):
+        #     if (ped_converter.num_implicit > 0):
+        #
+        #         self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
+        #
+        #         subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+        #                         f' -d founder_filepath="{ped_converter.founder_filepath}"'
+        #                         f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'
+        #                         f' -d imp_founder_vcf_filepath="{self.implicit_founders_vcf_filepath}"'
+        #                         f' -d genome_length="{self.genome_length}"'
+        #                         f' -d mu_rate="{self.mutation_rate}"'
+        #                         f' -d recomb_rate="{self.recomb_rate}"'
+        #                         f' -s {self.seed_number}'
+        #                         f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'], shell=True)
+        #     else:
+        #
+        #         self.founder_genomes = f"'{self.founder_genomes}'"
+        #
+        #         subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+        #                         f' -d founder_filepath="{ped_converter.founder_filepath}"'
+        #                         f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
+        #                         f' -d genome_length="{self.genome_length}"'
+        #                         f' -d mu_rate="{self.mutation_rate}"'
+        #                         f' -d recomb_rate="{self.recomb_rate}"'
+        #                         f' -s {self.seed_number}'
+        #                         f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'],
+        #                        shell=True)
+        # else:
+        #     self.fasta_file = util.check_fasta(self.fasta_file)
+        #     self.fasta_file = f"'{self.fasta_file}'"
+        #
+        #     if (ped_converter.num_implicit > 0):
+        #
+        #         self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
+        #
+        #         subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+        #                         f' -d founder_filepath="{ped_converter.founder_filepath}"'
+        #                         f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'
+        #                         f' -d imp_founder_vcf_filepath="{self.implicit_founders_vcf_filepath}"'
+        #                         f' -d genome_length="{self.genome_length}"'
+        #                         f' -d mu_rate="{self.mutation_rate}"'
+        #                         f' -d recomb_rate="{self.recomb_rate}"'
+        #                         f' -s {self.seed_number}'
+        #                         f' -d fasta_file="{self.fasta_file}"'
+        #                         f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'],
+        #                        shell=True)
+        #     else:
+        #         self.founder_genomes = f"'{self.founder_genomes}'"
+        #         subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+        #                         f' -d founder_filepath="{ped_converter.founder_filepath}"'
+        #                         f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
+        #                         f' -d genome_length="{self.genome_length}"'
+        #                         f' -d mu_rate="{self.mutation_rate}"'
+        #                         f' -d recomb_rate="{self.recomb_rate}"'
+        #                         f' -s {self.seed_number}'
+        #                         f' -d fasta_file="{self.fasta_file}"'
+        #                         f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'],
+        #                        shell=True)
+

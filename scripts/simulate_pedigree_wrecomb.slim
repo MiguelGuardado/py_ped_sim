@@ -22,9 +22,10 @@ initialize() {
 	initializeMutationRate(mu_rate);
 
 	// THIS CODE IS USED TO READ THE RECOMBINATION MAP
- 	map = readCSV(recomb_map, c("ends", "rates"), sep="\t");
+ 	map = readCSV(recomb_map, c("ends", "rates"), sep=" ");
     ends = map.getValue("ends");
-    ends = c(ends[1:(size(ends)-1)] - 2, 23011543);
+    print(ends);
+    ends = c(ends[1:(size(ends)-1)]-2, genome_length);
     rates = map.getValue("rates") * 1e-8;
     initializeRecombinationRate(rates, ends);
 	

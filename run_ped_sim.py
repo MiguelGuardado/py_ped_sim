@@ -48,6 +48,7 @@ def load_args():
     parser.add_argument('-l', '--genome_length', default=99999, type=int)
     parser.add_argument('-mu', '--mutation_rate', default='1e-7', type=str)
     parser.add_argument('-r', '--recomb_rate', default='1e-8', type=str)
+    parser.add_argument('-rm', '--recomb_map', type=str)
     parser.add_argument('-n_gen,', '--number_of_gens', default=12000, type=int)
     parser.add_argument('-n_indiv', '--number_of_indivs', default=1000, type=int)
     parser.add_argument('-s', '--seed_number', default=np.random.randint(100000, size=1)[0], type=int)
@@ -123,6 +124,11 @@ def check_params():
             if not os.path.isfile(args.fasta_file):
                 raise_filepath_error(args.fasta_file)
             args.fasta_file = os.path.abspath(args.fasta_file)
+
+        if args.recomb_map is not None:
+            if not os.path.isfile(args.recomb_map):
+                raise_filepath_error(args.recomb_map)
+            args.recomb_map = os.path.abspath(args.recomb_map)
 
 
     elif args.type_of_sim == 'sim_genomes_exact':
@@ -224,8 +230,7 @@ if __name__ == '__main__':
         subprocess.run([sim_founder_cmd], shell=True)
 
 
-    elif args.type_of_sim == 'sim_genomes':
-
+    elif args.type_of_sim == 'sim_genomes' or args.type_of_sim == 'sim_genomes_exact':
         load_founders.load_founders(
             networkx_file=args.networkx_file,
             cur_dir=cur_user_dir,
@@ -234,22 +239,24 @@ if __name__ == '__main__':
             mutation_rate=args.mutation_rate,
             recomb_rate=args.recomb_rate,
             seed_number=args.seed_number,
-            fasta_file=args.fasta_file
+            fasta_file=args.fasta_file,
+            recomb_map=args.recomb_map,
+            exact_founder_id=args.exact_founder_id
         )
 
-    elif args.type_of_sim == 'sim_genomes_exact':
-
-        load_founders_exact.load_founders_exact(
-            networkx_file=args.networkx_file,
-            exact_founder_id=args.exact_founder_id,
-            cur_dir=cur_user_dir,
-            out_pref=args.output_prefix,
-            vcf_file=args.vcf_file,
-            mutation_rate=args.mutation_rate,
-            recomb_rate=args.recomb_rate,
-            seed_number=args.seed_number,
-            fasta_file=args.fasta_file
-        )
+    # elif args.type_of_sim == 'sim_genomes_exact':
+    #
+    #     load_founders_exact.load_founders_exact(
+    #         networkx_file=args.networkx_file,
+    #         exact_founder_id=args.exact_founder_id,
+    #         cur_dir=cur_user_dir,
+    #         out_pref=args.output_prefix,
+    #         vcf_file=args.vcf_file,
+    #         mutation_rate=args.mutation_rate,
+    #         recomb_rate=args.recomb_rate,
+    #         seed_number=args.seed_number,
+    #         fasta_file=args.fasta_file
+    #     )
 
     elif args.type_of_sim == 'enur_fam':
         if args.output_prefix is None:

@@ -156,6 +156,31 @@ If it is important to have the same chromosome outputted, you can use the -f whi
 python run_ped_sim.py -t sim_genomes -f test_data/load_founders/test_fam_fasta.fa -n test_data/test_fam.nx -v test_data/load_founders/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
 ```
 
+### Simulate Genomes with a Recombination Map 
+Recombination maps are important if you care about varying the rate of recombination along a genome. We provide the users the 
+flexibility to enter recombination maps when's simulating genomes onto pedigrees. This feature can be used in tandem with
+nucleotide specific simulations. 
+
+**You must specify the `-rm` parameter to run simulations with recombination maps**
+
+```bash 
+python run_ped_sim.py -t sim_genomes_exact -n test_data/test_fam.nx -rm test_data/test_fam_recomb_map.txt -v test_data/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
+```
+
+Format of the recombination maps should be a two columns file single spaced with no columns. The first columns represents
+the start point of position in bases, beggining with 1, the second column is the recombination rate for that region 
+in cM/Mbp. When you input a number, it will be converted to scientific notation with an exponent of -8 for use in SLiM. 
+For example, if you input 1.8, it will be interpreted as 1.8e-8.
+
+**Example format of file:**
+
+| 1     | 0    |
+|-------|------|
+| 3000  | 1.8  |
+| 4503  | 1.6  |
+
+
+
 # Feature documentation
 
 ### sim_founder 

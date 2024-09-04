@@ -33,9 +33,10 @@ initialize() {
  	initializeGenomicElement(g1, 0, L-1);
 
  	// THIS CODE IS USED TO READ THE RECOMBINATION MAP
- 	map = readCSV(recomb_map, c("ends", "rates"), sep=" ");
+ 	map = readCSV(recomb_map, c("ends", "rates"), sep="\t");
+ 	// print(map);
     ends = map.getValue("ends");
-    print(ends);
+    // print(ends);
     ends = c(ends[1:(size(ends)-1)]-2, L-1);
     rates = map.getValue("rates") * 1e-8;
     initializeRecombinationRate(rates, ends);

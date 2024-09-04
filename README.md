@@ -167,7 +167,7 @@ nucleotide specific simulations.
 python run_ped_sim.py -t sim_genomes_exact -n test_data/test_fam.nx -rm test_data/test_fam_recomb_map.txt -v test_data/lwk_1kg_toydata_slim_fil.vcf -o testfam_exact
 ```
 
-Format of the recombination maps should be a two columns file single spaced with no columns. The first columns represents
+Format of the recombination maps should be a two columns file, TAB delimited with no columns. The first columns represents
 the start point of position in bases, beggining with 1, the second column is the recombination rate for that region 
 in cM/Mbp. When you input a number, it will be converted to scientific notation with an exponent of -8 for use in SLiM. 
 For example, if you input 1.8, it will be interpreted as 1.8e-8.

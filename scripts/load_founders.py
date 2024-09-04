@@ -266,6 +266,16 @@ class load_founders:
             self.founder_genomes = f"'{self.founder_genomes}'"
             self.recomb_map = f"'{self.recomb_map}'"
 
+            print(f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
+                            f' -d founder_filepath="{ped_converter.founder_filepath}"'
+                            f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
+                            f' -d genome_length="{self.genome_length}"'
+                            f' -d mu_rate="{self.mutation_rate}"'
+                            f' -d recomb_map="{self.recomb_map}"'
+                            f' -s {self.seed_number}'
+                            f' -d fasta_file="{self.fasta_file}"'
+                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc_wrecomb.slim')
+
             # Run SLiM Command
             subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
                             f' -d founder_filepath="{ped_converter.founder_filepath}"'

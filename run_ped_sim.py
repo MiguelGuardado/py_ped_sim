@@ -130,7 +130,6 @@ def check_params():
                 raise_filepath_error(args.recomb_map)
             args.recomb_map = os.path.abspath(args.recomb_map)
 
-
     elif args.type_of_sim == 'sim_genomes_exact':
         if not os.path.isfile(args.vcf_file):
             raise_filepath_error(args.vcf_file)
@@ -148,6 +147,11 @@ def check_params():
             if not os.path.isfile(args.fasta_file):
                 raise_filepath_error("-fasta_file")
             args.fasta_file = os.path.abspath(args.fasta_file)
+
+        if args.recomb_map is not None:
+            if not os.path.isfile(args.recomb_map):
+                raise_filepath_error(args.recomb_map)
+            args.recomb_map = os.path.abspath(args.recomb_map)
 
     elif args.type_of_sim == 'enur_fam':
         if not os.path.isfile(args.networkx_file):

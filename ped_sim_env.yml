@@ -10,6 +10,7 @@ dependencies:
   - networkx
   - pandas
   - matplotlib
+  - msprime
   - bcftools
   - libdeflate=1.0
   - seaborn

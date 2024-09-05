@@ -253,5 +253,6 @@ class convert_pedigree:
         self.slim_filepath = self.output_prefix + "_slim_pedigree.txt"
         self.founder_filepath = self.output_prefix + "_founder_file.txt"
 
+        print(self.slim_filepath)
         np.savetxt(self.slim_filepath, self.slim_ped, fmt='%s', delimiter=" ")
         np.savetxt(self.founder_filepath, self.founders, fmt='%s', delimiter=",")

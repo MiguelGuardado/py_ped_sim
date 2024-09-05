@@ -11,6 +11,7 @@ dependencies:
   - pandas
   - matplotlib
   - msprime
+  - gsl
   - bcftools
   - libdeflate=1.0
   - seaborn

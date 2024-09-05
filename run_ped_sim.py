@@ -102,12 +102,7 @@ def check_params():
     """
 #   We need to simulate the founders genomes, so this will check if SLIM input parameters are in the correct format
     if args.type_of_sim == 'sim_founders':
-
-        if not check_exp_input(args.recomb_rate):
-            raise_filepath_error(args.recomb_rate)
-
-        if not check_exp_input(args.mutation_rate):
-            raise_filepath_error(args.mutation_rate)
+        args.output_prefix = os.path.abspath(f"{args.output_prefix}")
 
     elif args.type_of_sim == 'sim_genomes':
 
@@ -300,6 +295,7 @@ if __name__ == '__main__':
         util.fill_ped(networkx_file=args.networkx_file, output_prefix=args.output_prefix)
 
     elif args.type_of_sim == 'convert_pedigree':
+        print('here')
         convert_pedigree.convert_pedigree(ped_filepath=args.networkx_file, output_prefix=args.output_prefix)
 
     else:

@@ -420,66 +420,6 @@ class load_founders:
 
         # #  Now that the simulation is done, we will delete all files not desired by user, feel free to undelete these
         # #  if you want these outputs.
-        # rm_cmd = f"rm {self.founder_genomes}* {ped_converter.founder_filepath}" \
-        #          f" {self.explicit_founders_vcf_filepath} {self.implicit_founders_vcf_filepath}"
-        # subprocess.run([rm_cmd], shell=True)
-
-        # if (self.is_nuc_seq):
-        #     if (ped_converter.num_implicit > 0):
-        #
-        #         self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
-        #
-        #         subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
-        #                         f' -d founder_filepath="{ped_converter.founder_filepath}"'
-        #                         f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'
-        #                         f' -d imp_founder_vcf_filepath="{self.implicit_founders_vcf_filepath}"'
-        #                         f' -d genome_length="{self.genome_length}"'
-        #                         f' -d mu_rate="{self.mutation_rate}"'
-        #                         f' -d recomb_rate="{self.recomb_rate}"'
-        #                         f' -s {self.seed_number}'
-        #                         f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'], shell=True)
-        #     else:
-        #
-        #         self.founder_genomes = f"'{self.founder_genomes}'"
-        #
-        #         subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
-        #                         f' -d founder_filepath="{ped_converter.founder_filepath}"'
-        #                         f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
-        #                         f' -d genome_length="{self.genome_length}"'
-        #                         f' -d mu_rate="{self.mutation_rate}"'
-        #                         f' -d recomb_rate="{self.recomb_rate}"'
-        #                         f' -s {self.seed_number}'
-        #                         f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree.slim'],
-        #                        shell=True)
-        # else:
-        #     self.fasta_file = util.check_fasta(self.fasta_file)
-        #     self.fasta_file = f"'{self.fasta_file}'"
-        #
-        #     if (ped_converter.num_implicit > 0):
-        #
-        #         self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
-        #
-        #         subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
-        #                         f' -d founder_filepath="{ped_converter.founder_filepath}"'
-        #                         f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'
-        #                         f' -d imp_founder_vcf_filepath="{self.implicit_founders_vcf_filepath}"'
-        #                         f' -d genome_length="{self.genome_length}"'
-        #                         f' -d mu_rate="{self.mutation_rate}"'
-        #                         f' -d recomb_rate="{self.recomb_rate}"'
-        #                         f' -s {self.seed_number}'
-        #                         f' -d fasta_file="{self.fasta_file}"'
-        #                         f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'],
-        #                        shell=True)
-        #     else:
-        #         self.founder_genomes = f"'{self.founder_genomes}'"
-        #         subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
-        #                         f' -d founder_filepath="{ped_converter.founder_filepath}"'
-        #                         f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
-        #                         f' -d genome_length="{self.genome_length}"'
-        #                         f' -d mu_rate="{self.mutation_rate}"'
-        #                         f' -d recomb_rate="{self.recomb_rate}"'
-        #                         f' -s {self.seed_number}'
-        #                         f' -d fasta_file="{self.fasta_file}"'
-        #                         f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc.slim'],
-        #                        shell=True)
-
+        rm_cmd = f"rm {self.founder_genomes}* {ped_converter.founder_filepath}" \
+                 f" {self.explicit_founders_vcf_filepath} {self.implicit_founders_vcf_filepath}"
+        subprocess.run([rm_cmd], shell=True)

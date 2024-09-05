@@ -8,6 +8,8 @@ import networkx as nx
 import pandas as pd
 import numpy as np
 import subprocess
+from pathlib import Path
+
 def add_contig(vcf_file, contig_length=None):
     """
     This function will add a Contig Line to the VCF file since Slim appears to not have this included in their
@@ -76,9 +78,8 @@ def correct_chr_in_vcf(vcf_file, founder_vcf_file):
     :param founder_vcf_file: VCF file that was used to intialize founders
     :return:
     '''
+    cmd = f"zgrep -A1 '^#CHROM' {founder_vcf_file} | tail -n1 | cut -f1"
 
-    # This line will find out the chr name found in the inputted vcf file. (We make assumption that only a single chr will be inputted)
-    cmd =  f"grep -A1 '^#CHROM' {founder_vcf_file} | tail -n1 | cut -f1"
     p = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
     out, err = p.communicate()
 

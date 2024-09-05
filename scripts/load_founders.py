@@ -344,6 +344,9 @@ class load_founders:
 
             self.founder_genomes = f"'{self.founder_genomes}'"
 
+            self.fasta_file = util.check_fasta(self.fasta_file)
+            self.fasta_file = f"'{self.fasta_file}'"
+
             subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
                             f' -d founder_filepath="{ped_converter.founder_filepath}"'
                             f' -d exp_founder_vcf_filepath="{self.explicit_founders_vcf_filepath}"'
@@ -361,6 +364,10 @@ class load_founders:
             print('Nucleotide specific simulation, no implicit founder, and no recombination map')
 
             self.founder_genomes = f"'{self.founder_genomes}'"
+
+            self.fasta_file = util.check_fasta(self.fasta_file)
+            self.fasta_file = f"'{self.fasta_file}'"
+
             subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
                             f' -d founder_filepath="{ped_converter.founder_filepath}"'
                             f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
@@ -413,7 +420,7 @@ class load_founders:
         util.update_vcf_header(f'{self.output_prefix}_genomes.vcf', self.networkx_file)
 
         # Add CONTIG header to the VCF file
-        util.add_contig(f'{self.output_prefix}_genomes.vcf')
+        util.add_contig(f'{self.output_prefix}_genomes.vcf', self.vcf_file)
 
         # Finally we will correct the chr name based on the chr number used in the vcf output
         util.correct_chr_in_vcf(f'{self.output_prefix}_genomes.vcf', self.vcf_file)

@@ -1,4 +1,4 @@
-# py_ped_sim - A flexible forward genetic simulator for complex family pedigree analysis
+# py_ped_sim - A flexible forward pedigree and genetic simulator for complex family pedigree analysis
 
 ![plot](test_data/images/Fig1.png)
 

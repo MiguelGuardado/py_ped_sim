@@ -52,6 +52,7 @@ def load_args():
     parser.add_argument('-n_gen,', '--number_of_gens', default=12000, type=int)
     parser.add_argument('-n_indiv', '--number_of_indivs', default=1000, type=int)
     parser.add_argument('-s', '--seed_number', default=np.random.randint(100000, size=1)[0], type=int)
+    parser.add_argument('-sf', '--sample_file', type=str)
     parser.add_argument('-Ne', '--population_size', type=int, default=10000)
     parser.add_argument('-Nf', '--num_founder', type=int, default=5000)
 
@@ -85,127 +86,89 @@ def check_exp_input(exp_expression):
         return(False)
     return(False)
 
+def check_and_abs_path(file_path, raise_error=True):
+    """Helper function to check file existence and convert to absolute path."""
+    if file_path is not None:
+        if raise_error and not os.path.isfile(file_path):
+            raise_filepath_error(file_path)
+        return os.path.abspath(file_path)
+    return file_path
+
+def check_output_prefix(required=True):
+    """Helper function to check if output_prefix is required and convert to absolute path."""
+    if required:
+        if not args.output_prefix:
+            raise ValueError("Output prefix is required but not provided.")
+        args.output_prefix = os.path.abspath(args.output_prefix)
+    elif args.output_prefix:
+        # If optional and provided, convert to absolute path
+        args.output_prefix = os.path.abspath(args.output_prefix)
+
 def check_params():
     """
-    This function will be used to check in all the user parameters inputted by the user. This function will return
-    nothing if the parameters are inputted correctly, and will go onto running the simulations. If the user input
-    parameter are off, then this function will throw and error and tell you which parameters needs to be fixed.
-
-    We will additionally find the absolute path of each file prior to running the simulations so we dont have to
-    reference the users local directory .
-
-
-    It might be annoying but we check the input for each simulation type reqested.
-
-    The only input files we do not check are for the sim_founders feature!
-
+    This function checks the user parameters and ensures they are correctly formatted.
+    It also converts file paths to absolute paths to avoid local directory reference issues.
     """
-#   We need to simulate the founders genomes, so this will check if SLIM input parameters are in the correct format
     if args.type_of_sim == 'sim_founders':
-        args.output_prefix = os.path.abspath(f"{args.output_prefix}")
+        check_output_prefix()
 
     elif args.type_of_sim == 'sim_genomes':
-
-        if not os.path.isfile(args.vcf_file):
-            raise_filepath_error(args.vcf_file)
-
-        if not os.path.isfile(args.networkx_file):
-            raise_filepath_error(args.networkx_file)
-
-        args.vcf_file = os.path.abspath(args.vcf_file)
-        args.networkx_file = os.path.abspath(args.networkx_file)
-
-        if args.fasta_file is not None:
-            if not os.path.isfile(args.fasta_file):
-                raise_filepath_error(args.fasta_file)
-            args.fasta_file = os.path.abspath(args.fasta_file)
-
-        if args.recomb_map is not None:
-            if not os.path.isfile(args.recomb_map):
-                raise_filepath_error(args.recomb_map)
-            args.recomb_map = os.path.abspath(args.recomb_map)
+        check_output_prefix()
+        args.vcf_file = check_and_abs_path(args.vcf_file)
+        args.networkx_file = check_and_abs_path(args.networkx_file)
+        args.fasta_file = check_and_abs_path(args.fasta_file, raise_error=False)
+        args.recomb_map = check_and_abs_path(args.recomb_map, raise_error=False)
 
     elif args.type_of_sim == 'sim_genomes_exact':
-        if not os.path.isfile(args.vcf_file):
-            raise_filepath_error(args.vcf_file)
-        if not os.path.isfile(args.networkx_file):
-            raise_filepath_error(args.networkx_file)
-        if not os.path.isfile(args.exact_founder_id):
-            raise_filepath_error(args.exact_founder_id)
-
-        # Correct rel path to full path
-        args.vcf_file = os.path.abspath(f"{args.vcf_file}")
-        args.networkx_file = os.path.abspath(f"{args.networkx_file}")
-        args.output_prefix = os.path.abspath(f"{args.output_prefix}")
-        args.exact_founder_id = os.path.abspath(f"{args.exact_founder_id}")
-        if args.fasta_file is not None:
-            if not os.path.isfile(args.fasta_file):
-                raise_filepath_error("-fasta_file")
-            args.fasta_file = os.path.abspath(args.fasta_file)
-
-        if args.recomb_map is not None:
-            if not os.path.isfile(args.recomb_map):
-                raise_filepath_error(args.recomb_map)
-            args.recomb_map = os.path.abspath(args.recomb_map)
+        check_output_prefix()
+        args.vcf_file = check_and_abs_path(args.vcf_file)
+        args.networkx_file = check_and_abs_path(args.networkx_file)
+        args.exact_founder_id = check_and_abs_path(args.exact_founder_id)
+        args.fasta_file = check_and_abs_path(args.fasta_file, raise_error=False)
+        args.recomb_map = check_and_abs_path(args.recomb_map, raise_error=False)
 
     elif args.type_of_sim == 'enur_fam':
-        if not os.path.isfile(args.networkx_file):
-            raise_filepath_error(args.networkx_file)
-        args.networkx_file = os.path.abspath(args.networkx_file)
+        # Output prefix is optional in this case
+        check_output_prefix(required=False)
+        args.networkx_file = check_and_abs_path(args.networkx_file)
+        args.sample_file = check_and_abs_path(args.sample_file, raise_error=False)
 
     elif args.type_of_sim == 'sim_ped':
-        if args.census_filepath != None:
-            # raise_filepath_error(args.census_filepath)
-            args.census_filepath = os.path.abspath(args.census_filepath)
-        else:
-            args.census_filepath = 'scripts/ipumps_sibship_dist.txt'
-
-        args.output_prefix = os.path.abspath(f"{args.output_prefix}")
+        check_output_prefix()
+        args.census_filepath = check_and_abs_path(args.census_filepath, raise_error=False) or 'scripts/ipumps_sibship_dist.txt'
         args.years_to_sample = ' '.join(str(x) for x in args.years_to_sample)
 
     elif args.type_of_sim == 'sim_map':
-        if not os.path.isfile(args.networkx_file):
-            raise_filepath_error(args.networkx_file)
-
-        if not os.path.isfile(args.profiles_file):
-            raise_filepath_error(args.profiles_file)
-
-        args.networkx_file = os.path.abspath(args.networkx_file)
-        args.profiles_file = os.path.abspath(args.profiles_file)
+        check_output_prefix()
+        args.networkx_file = check_and_abs_path(args.networkx_file)
+        args.profiles_file = check_and_abs_path(args.profiles_file)
 
     elif args.type_of_sim == 'ped_to_networkx':
-        if not os.path.isfile(args.ped_file):
-            raise_filepath_error(args.ped_file)
-        args.ped_file = os.path.abspath(f"{args.ped_file}")
+        check_output_prefix()
+        args.ped_file = check_and_abs_path(args.ped_file)
 
     elif args.type_of_sim == 'networkx_to_ped':
-        if not os.path.isfile(args.networkx_file):
-            raise_filepath_error(args.networkx_file)
-
-        if args.profiles_file is not None and os.path.isfile(args.profiles_file):
-            args.profiles_file = os.path.abspath(f"{args.profiles_file}")
-        args.networkx_file = os.path.abspath(f"{args.networkx_file}")
+        check_output_prefix()
+        args.networkx_file = check_and_abs_path(args.networkx_file)
+        args.profiles_file = check_and_abs_path(args.profiles_file, raise_error=False)
 
     elif args.type_of_sim == 'filter_vcf':
-        if not os.path.isfile(args.vcf_file):
-            raise_filepath_error(args.vcf_file)
-        args.vcf_file = os.path.abspath(args.vcf_file)
+        check_output_prefix()
+        args.vcf_file = check_and_abs_path(args.vcf_file)
 
     elif args.type_of_sim == 'check_founders':
-        if not os.path.isfile(args.networkx_file):
-            raise_filepath_error(args.networkx_file)
-        args.networkx_file = os.path.abspath(args.networkx_file)
+        check_output_prefix()
+        args.networkx_file = check_and_abs_path(args.networkx_file)
 
     elif args.type_of_sim == 'fill_ped':
-        if not os.path.isfile(args.networkx_file):
-            raise_filepath_error(args.networkx_file)
-        args.networkx_file = os.path.abspath(args.networkx_file)
+        check_output_prefix()
+        args.networkx_file = check_and_abs_path(args.networkx_file)
 
     elif args.type_of_sim == 'convert_pedigree':
-        if not os.path.isfile(args.networkx_file):
-            raise_filepath_error(args.networkx_file)
-        args.networkx_file = os.path.abspath(args.networkx_file)
-        args.output_prefix = os.path.abspath(f"{args.output_prefix}")
+        check_output_prefix()
+        args.networkx_file = check_and_abs_path(args.networkx_file)
+
+
 
 #MAIN CLASS: this is where the ped_sim code starts.
 if __name__ == '__main__':
@@ -243,25 +206,8 @@ if __name__ == '__main__':
             exact_founder_id=args.exact_founder_id
         )
 
-    # elif args.type_of_sim == 'sim_genomes_exact':
-    #
-    #     load_founders_exact.load_founders_exact(
-    #         networkx_file=args.networkx_file,
-    #         exact_founder_id=args.exact_founder_id,
-    #         cur_dir=cur_user_dir,
-    #         out_pref=args.output_prefix,
-    #         vcf_file=args.vcf_file,
-    #         mutation_rate=args.mutation_rate,
-    #         recomb_rate=args.recomb_rate,
-    #         seed_number=args.seed_number,
-    #         fasta_file=args.fasta_file
-    #     )
-
     elif args.type_of_sim == 'enur_fam':
-        if args.output_prefix is None:
-            enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file}'
-        else:
-            enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file} -o {args.output_prefix}'
+        enur_fam_cmd = f'python scripts/enur_fam.py -n {args.networkx_file} -sf {args.sample_file} -o {args.output_prefix}'
         subprocess.run([enur_fam_cmd], shell=True)
 
     elif args.type_of_sim == 'sim_ped':
@@ -295,7 +241,6 @@ if __name__ == '__main__':
         util.fill_ped(networkx_file=args.networkx_file, output_prefix=args.output_prefix)
 
     elif args.type_of_sim == 'convert_pedigree':
-        print('here')
         convert_pedigree.convert_pedigree(ped_filepath=args.networkx_file, output_prefix=args.output_prefix)
 
     else:

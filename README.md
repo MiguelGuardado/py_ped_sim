@@ -181,6 +181,94 @@ For example, if you input 1.8, it will be interpreted as 1.8e-8.
 
 
 
+### sim_ped - Pedigree Structure Simulator 
+
+This feature will simulate pedigree structures with non-uniform rates of sibship size across generations. 
+This will not produce genomes but rather pedigree structures themselves. Output of formats will be represented 
+by networkx formatted pedigrees. Additionally, a profiles fill will be outputted recording the sex and generation
+each individual is assigned to
+
+
+```bash
+python run_ped_sim.py -t sim_ped -y 1880 1900 1920 -o 3gen_family 
+```
+
+Parameter list 
+
+`-c` - sibship distribution file , default to scripts/ipumps_sibship_dist.txt
+
+`-y` - years to sample from census filepath. Years used must be found inside -c
+
+`-s` - random seed to sample from
+
+`-o` - output prefix 
+
+Format of sibship distribtion:
+
+| Year | Mean | SD   |
+|------|------|------|
+| 1850 | 3.31 | 2.13 |
+| 1860 | 3.11 | 2.00 |
+| 1870 | 2.97 | 1.94 |
+ This data was estimated from IPUMs
+
+Output of the simulation will be a family pedigree represented as a networkx directed graph and a profiles
+file of the genome simulations 
+
+### sim_map - Misattributed Paternity Simulator
+
+This feature will preform misattributed paternity simulation on existing pedigrees. Pedigrees must be in networkx file 
+formats. This features will traverse through all non-root founders and identify  
+
+```bash
+python run_ped_sim.py -t sim_map -n test_data/test_fam.nx -pr test_fam_profiles.txt -p1 0.10 -p2 0.50 -o test_data/test_fam_wmp 
+```
+This will MAP simulation with a MP rate of 0.10 and a within family MP event rate of 0.50
+
+Parameter list 
+
+`-n` - networkx represented pedigree file
+
+`-pr` - profiles file for the network represented pedigree 
+
+`-p1` - probability value on if a misattributed event will happen for a non-root founder
+
+`-p2` - probability value on if the new parent will occur within the family
+
+`-o` - output prefix 
+
+### enur_fam - pairwise relationship identifier 
+
+This feature will allow user to identify pairwise relationships for a specified family pedigree. This will
+generalize these relationships into 3 metrics. Pairwise relationships, Meiosis Count, and Relationship Type. For a subset
+of commonly known relationships, we will provide a relationship code of the relationship based on those three values.
+
+ex. MC=1, GD=1, RT=Direct, RC=Parent Child
+MC=2, GD=0, RT=Full, RC=Full Sibling
+MC=2, GD=0, RT=Half, RC=Half Sibling
+
+```bash
+python run_ped_sim.py -t enur_fam -n test_data/test_fam.nx 
+```
+
+Additionally, you could only be interested in identifying relationships from a subset of individuals within a family 
+pedigree. Users are able to input a text file of the ID's they wish to identify relationships for. Note this will
+still find relationships for all other individuals for the subsetted individuals requested. 
+
+```bash
+python run_ped_sim.py -t enur_fam -n test_data/test_fam.nx -sf test_data/test_fam_sample.txt
+```
+
+`-n` - networkx represented pedigree file
+
+`-sf` - single column file of individuals to idenitfy relationships for   
+
+`-o` - output prefix for relationship file. **not required** 
+
+
+
+
+
 # Feature documentation
 
 ### sim_founder 

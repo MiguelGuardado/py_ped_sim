@@ -170,7 +170,6 @@ def find_mc_with_ca(G, node1, node2, com_anc):
 
     return len(node1_path_fil) + len(node2_path_fil)
 
-
 def find_relationship(gen, mc, rt):
     rc = f'{gen}_{mc}_{rt}'
     if rc in relationship_code.keys():
@@ -178,16 +177,25 @@ def find_relationship(gen, mc, rt):
     else:
         return 'N/A'
 
-
-def find_pairwise_relationships(G, networkx_prefix):
+def find_pairwise_relationships(G, output_prefix, sample_file=None):
     relationships = []
 
     family_list = list(G)
     family_list.sort(key=int)
 
+    if sample_file is not None:
+        fam_list_1 = sample_file
+    else:
+        fam_list_1 = family_list
+
     node_index = 0
-    for node1 in family_list:
-        for node2 in family_list[node_index + 1:]:
+    for node1 in fam_list_1:
+        if sample_file is not None:
+            fam_list_2 = family_list
+        else:
+            fam_list_2 = family_list[node_index + 1:]
+
+        for node2 in fam_list_2:
             if node1 == node2:
                 continue
 
@@ -226,12 +234,13 @@ def find_pairwise_relationships(G, networkx_prefix):
             else:
                 continue
 
+
         # Index to keep track of upper triangle of pairwise individuals in family_list
         node_index+=1
 
     # Convert list of pairwise relationships statistics into pandas dataframe to output.
     output_df = pd.DataFrame(relationships, columns=['Fam_ID', 'ID1', 'ID2', 'MC', 'GD', 'RT', "RC"])
-    output_fn = f"{networkx_prefix}_rel.csv"
+    output_fn = f"{output_prefix}_rel.csv"
     output_df.to_csv(output_fn, index=False)
 
 if __name__ == '__main__':
@@ -239,19 +248,25 @@ if __name__ == '__main__':
     # Load in command line user inputs
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--networkx_file', type=str, required=True)
+    parser.add_argument('-sf', '--sample_file', type=str)
     parser.add_argument('-o', '--output_prefix', type=str, required=False, default=None)
     parser.add_argument('-t', '--true_half', type=bool, default=False)
     user_args = parser.parse_args()
 
-    if user_args.output_prefix is None:
+    if user_args.output_prefix == None or user_args.sample_file=='None':
         user_args.output_prefix = user_args.networkx_file.split('.nx')[0]
 
     # We convert true_half into a variable so we can make it a global variable for find_rt() to read in.
     true_half = user_args.true_half
 
     # Read in family pedigree represented as a directed acyclic graph
-    G = nx.read_edgelist(user_args.networkx_file, create_using=nx.DiGraph())
-    G_undir = G.to_undirected()
+    fam_graph = nx.read_edgelist(user_args.networkx_file, create_using=nx.DiGraph())
+    G_undir = fam_graph.to_undirected()
 
-    # Feed into function to determine relationships statistics for the family pedigrees
-    find_pairwise_relationships(G, networkx_prefix=user_args.output_prefix)
+    print(user_args.sample_file)
+    if user_args.sample_file is None or user_args.sample_file=='None':
+        # Feed into function to determine relationships statistics for the family pedigrees
+        find_pairwise_relationships(fam_graph, output_prefix=user_args.output_prefix)
+    else:
+        sample_file = np.loadtxt(user_args.sample_file, dtype=str)
+        find_pairwise_relationships(fam_graph, user_args.output_prefix, sample_file)

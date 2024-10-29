@@ -13,9 +13,9 @@ The founder can be specified. otherwise the founder is chosen at random
 
 '''
 
-# python run_single_family_broadening.py -n1 sym_family.nx -n2 sym_family.nx -p1 sym_family_profiles.txt -p2 sym_family_profiles.txt -o sym_joint
-#example python run_single_family_broadening.py -n1 testfam_half.nx -n2 testfam_half.nx -p1 test_fam_profilev2.txt -p2 test_fam_profilev2.txt -s 3
-# python run_single_family_broadening.py -n1 main_sim.nx -n2 fam0.nx -p1 main_sim_profiles.txt -p2 fam0_profiles.txt -o sym_joint -cf 9
+# python run_single_family_broadening.py -n1 sym_family.nx -n2 sym_family.nx -pr1 sym_family_profiles.txt -pr2 sym_family_profiles.txt -o sym_joint
+#example python run_single_family_broadening.py -n1 testfam_half.nx -n2 testfam_half.nx -pr1 test_fam_profilev2.txt -pr2 test_fam_profilev2.txt -s 3
+# python run_single_family_broadening.py -n1 main_sim.nx -n2 fam0.nx -pr1 main_sim_profiles.txt -pr2 fam0_profiles.txt -o sym_joint -cf 9
 
 def load_args():
     parser = argparse.ArgumentParser()

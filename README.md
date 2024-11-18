@@ -1,6 +1,6 @@
 # py_ped_sim - A flexible forward pedigree and genetic simulator for complex family pedigree analysis
 
-![plot](test_data/images/Fig1.png)
+![plot](test_data/images/Fig1.jpg)
 
 # Overview
 `py_ped_sim` 
@@ -35,6 +35,9 @@ User can specify how often this event will happen in the pedigree, in addition t
 `enur_fam` - This feature will determine all pairwise relationships within a family pedigree via 3 statistics. 
 Meiosis Count, Generation Depth Difference, and Relation Type.
 
+`run_full_family_broadening` - Simulate families on non-root founders on the main family. New joint family is outputted as a directed graph as a NX file. 
+A corisponding profiles file will also be generated containing ID, SEX, and Generation.
+
 ### Supplemental Features
 `sim_founders` - This feature utilizes MSPrime to simulate genomes for founders initalization. 
 
@@ -54,6 +57,7 @@ the ancestral allele for each SNP, as is a requirement for inputting vcf files i
 `convert_pedigree` - This will preform the wrapper script to convert networkx-represented pedigrees into SLiM readable pedigree files. 
 This function will only return you the SLiM readable pedigree file for mostly debugging purposes. 
 
+`run_single_family_broadening` - this function creates a connection between two families at a specified individual in the main family. 
 
 ## Basic Definitions 
 Founders - Founders are defined as individuals who do not have any known ascendants. Explicit founders are classified 
@@ -265,9 +269,27 @@ python run_ped_sim.py -t enur_fam -n test_data/test_fam.nx -sf test_data/test_fa
 
 `-o` - output prefix for relationship file. **not required** 
 
+### run_full_family_broadening - family broadening 
 
+This feature will create simulated familes and attach them to non-root founders. 
+If suplying with own main family, -y flag needs to exclude root founder generation and include last generation.
 
+```bash
+python run_ped_sim -t run_full_family_broadening.py -c ipumps_sibship_dist.txt -y 1850 1860 1870
+```
+This will simulate a main family then create joint families to connect to non-root founders in the main family.
 
+Parameter list
+
+`-c` - sibship distribution file, default to scripts/ipumps_sibship_dist.txt
+
+`-y` - years to sample from census filepath. Years used must be found inside -c
+
+`-o` - output prefix
+
+`mf` - main family file. Use for when user has specified main family file
+
+`mo` - main family output prefix. This is for the file name for the main family before family broadening.
 
 # Feature documentation
 

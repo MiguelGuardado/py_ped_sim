@@ -17,6 +17,7 @@ run_full_family_broadening.py iterates through each non-root founder and simulat
 if a main family is given, the root founder generation needs to be ommited in the -y flag
 """
 #ex: python run_ped_sim.py -t run_full_family_broadening -c ipumps_sibship_dist.txt -y 1850 1860 1870
+# python run_full_family_broadening.py -c ipumps_sibship_dist.txt -y 1850 1860 1870
 
 # record start time
 start = time.time()
@@ -28,6 +29,7 @@ def load_args():
     parser.add_argument('-o', '--output_prefix', type=str, default = 'joint_family_output')
     parser.add_argument('-mo', '--main_family_output_prefix', type=str, default = 'main_family')
     parser.add_argument('-mf', '--main_family')
+    parser.add_argument('-ss', '--remove_step', default=True)
     return parser.parse_args()
 
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
@@ -73,7 +75,7 @@ if __name__ == '__main__':
     u_main_family = user_args.main_family
     u_output = user_args.output_prefix
     u_mo = user_args.main_family_output_prefix
-
+    script_file =  'scripts/'
     #sets up years to run as a terminal command
     years_str = f'-y'
     for i in u_years:
@@ -86,7 +88,7 @@ if __name__ == '__main__':
     if user_args.main_family == None or user_args.main_family == 'None':# read in user imput family
         num_gen = 0
         while num_gen < len(u_years): #makes sure the simulated main family has the same number of generations as the user imputed generatrions. if less, the main family will be simulated again
-            sim_ped_cmd = f'python scripts/sim_pedigree_v2.py {years_str} -c {u_census} -o {u_mo}' 
+            sim_ped_cmd = f'python {script_file}sim_pedigree_v2.py {years_str} -c {u_census} -o {u_mo}' 
             print(sim_ped_cmd)
             subprocess.run(sim_ped_cmd, shell=True)
             main_family = nx.read_edgelist(f'{u_mo}.nx', create_using = nx.DiGraph())
@@ -109,7 +111,7 @@ if __name__ == '__main__':
     else: #simulate main family with sim_pedigree
         num_gen = 0
         while num_gen < len(u_years): #makes sure the simulated main family has the same number of generations as the user imputed generatrions. if less, the main family will be simulated again
-            sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o {u_mo}'
+            sim_ped_cmd = f'python {script_file}sim_pedigree.py {years_str} -c {u_census} -o {u_mo}'
             print(sim_ped_cmd)
             subprocess.run(sim_ped_cmd, shell=True)
             main_family = nx.read_edgelist(f'{u_mo}.nx', create_using = nx.DiGraph())
@@ -129,9 +131,9 @@ if __name__ == '__main__':
     kill = 0
 
     #initialize joint family
-    sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o fam0' # -s {input_seed}'
+    sim_ped_cmd = f'python {script_file}sim_pedigree.py {years_str} -c {u_census} -o fam0' # -s {input_seed}'
     subprocess.run(sim_ped_cmd, shell=True, capture_output=True)
-    join_cmd = f'python scripts/run_single_family_broadening.py -n1 main_family.nx -n2 fam0.nx -pr1 main_family_profiles.txt -pr2 fam0_profiles.txt -o {u_output} -cf {founders[0]}'
+    join_cmd = f'python {script_file}run_single_family_broadening.py -n1 main_family.nx -n2 fam0.nx -pr1 main_family_profiles.txt -pr2 fam0_profiles.txt -o {u_output} -cf {founders[0]}'
     
     # records errorcode in case family_broadening fails to connect main family and joint family. if an error occurs, new family is created 
     errorcode = subprocess.run(join_cmd, shell=True, capture_output=True)
@@ -139,13 +141,13 @@ if __name__ == '__main__':
 
     # checks if the siumulated family is compatible with the main family. if not run again
     while errorcode.returncode == 1:
-        sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o fam0' # -s {input_seed}'
+        sim_ped_cmd = f'python {script_file}sim_pedigree.py {years_str} -c {u_census} -o fam0' # -s {input_seed}'
         subprocess.run(sim_ped_cmd, shell=True, capture_output=True)
         if user_args.main_family:
             mf = u_main_family.replace('.nx','')
-            join_cmd = f'python run_single_family_broadening.py -n1 {mf}.nx -n2 fam0.nx -pr1 {mf}_profiles.txt -pr2 fam0_profiles.txt -o {u_output} -cf {founders[0]}'
+            join_cmd = f'python {script_file}run_single_family_broadening.py -n1 {mf}.nx -n2 fam0.nx -pr1 {mf}_profiles.txt -pr2 fam0_profiles.txt -o {u_output} -cf {founders[0]}'
         else:
-            join_cmd = f'python run_single_family_broadening.py -n1 main_family.nx -n2 fam0.nx -pr1 main_family_profiles.txt -pr2 fam0_profiles.txt -o {u_output} -cf {founders[0]}'
+            join_cmd = f'python {script_file}run_single_family_broadening.py -n1 main_family.nx -n2 fam0.nx -pr1 main_family_profiles.txt -pr2 fam0_profiles.txt -o {u_output} -cf {founders[0]}'
             
         errorcode = subprocess.run(join_cmd, shell=True, capture_output=True)
 
@@ -161,26 +163,29 @@ if __name__ == '__main__':
     count=1
     for i in founders[1:]:
         # create family to join main family
-        sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o fam{count}'
+        sim_ped_cmd = f'python {script_file}sim_pedigree.py {years_str} -c {u_census} -o fam{count}'
         subprocess.run(sim_ped_cmd, shell=True)
         print(count)
-        join_cmd = f'python run_single_family_broadening.py -n1 {u_output}.nx -n2 fam{count}.nx -pr1 {u_output}_profiles.txt -pr2 fam{count}_profiles.txt -o {u_output} -cf {i}'
+        join_cmd = f'python {script_file}run_single_family_broadening.py -n1 {u_output}.nx -n2 fam{count}.nx -pr1 {u_output}_profiles.txt -pr2 fam{count}_profiles.txt -o {u_output} -cf {i}'
         errorcode = subprocess.run(join_cmd, shell=True, capture_output=True)
         while errorcode.returncode == 1:
-            sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o fam{count}' # -s {input_seed}'
+            sim_ped_cmd = f'python {script_file}sim_pedigree.py {years_str} -c {u_census} -o fam{count}' # -s {input_seed}'
             subprocess.run(sim_ped_cmd, shell=True, capture_output=True)
-            join_cmd = f'python run_single_family_broadening.py -n1 {u_output}.nx -n2 fam{count}.nx -pr1 {u_output}_profiles.txt -pr2 fam{count}_profiles.txt -o {u_output} -cf {i}'
+            join_cmd = f'python {script_file}run_single_family_broadening.py -n1 {u_output}.nx -n2 fam{count}.nx -pr1 {u_output}_profiles.txt -pr2 fam{count}_profiles.txt -o {u_output} -cf {i}'
             errorcode = subprocess.run(join_cmd, shell=True, capture_output=True)
             print('creating new fam')
+    
         print(f'connection successful for fam{count} at founder', i)
         
         # remove simulated family after joining
-        os.remove(f"fam{count}.nx")
-        os.remove(f"fam{count}_profiles.txt")
+        if user_args.remove_step: 
+            os.remove(f"fam{count}.nx")
+            os.remove(f"fam{count}_profiles.txt")
 
         #increase count for file name
         count += 1
 
     # remove initial joint family
-    os.remove(f"fam0.nx")
-    os.remove(f"fam0_profiles.txt")
+    if user_args.remove_step: 
+        os.remove(f"fam0.nx")
+        os.remove(f"fam0_profiles.txt")

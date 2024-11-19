@@ -55,6 +55,14 @@ def load_args():
     parser.add_argument('-sf', '--sample_file', type=str)
     parser.add_argument('-Ne', '--population_size', type=int, default=10000)
     parser.add_argument('-Nf', '--num_founder', type=int, default=5000)
+    parser.add_argument('-n1', '--family1', type=str)
+    parser.add_argument('-n2', '--family2', type=str)
+    parser.add_argument('-pr1', '--profiles1', type=str)
+    parser.add_argument('-pr2', '--profiles2', type=str)
+    parser.add_argument('-cf', '--chosen_founder', type = str, default = 'empty')
+    parser.add_argument('-cs', '--chosen_sub', type = str, default = 'empty')
+    parser.add_argument('-mo', '--main_family_output_prefix', type=str, default = 'main_family')
+    parser.add_argument('-mf', '--main_family')
 
     return parser.parse_args()
 
@@ -153,7 +161,7 @@ def check_params():
         args.profiles_file = check_and_abs_path(args.profiles_file, raise_error=False)
 
     elif args.type_of_sim == 'filter_vcf':
-        check_output_prefix(required=False)
+        check_output_prefix()
         args.vcf_file = check_and_abs_path(args.vcf_file)
 
     elif args.type_of_sim == 'check_founders':
@@ -168,7 +176,20 @@ def check_params():
         check_output_prefix()
         args.networkx_file = check_and_abs_path(args.networkx_file)
 
+    elif args.type_of_sim == 'run_single_family_broadening':
+        check_output_prefix()
+        args.networkx_file = check_and_abs_path(args.networkx_file)
+        args.family1 = check_and_abs_path(args.family1)
+        args.family2 = check_and_abs_path(args.family2)
+        args.profile1 = check_and_abs_path(args.profile1)
+        args.profile2 = check_and_abs_path(args.profile2)
 
+    elif args.type_of_sim == 'run_full_family_broadening':
+        check_output_prefix(required=False)
+        args.years_to_sample = ' '.join(str(x) for x in args.years_to_sample)
+        args.census_filepath = check_and_abs_path(args.census_filepath, raise_error=False) or 'scripts/ipumps_sibship_dist.txt'
+        args.networkx_file = check_and_abs_path(args.networkx_file)
+        
 
 #MAIN CLASS: this is where the ped_sim code starts.
 if __name__ == '__main__':
@@ -242,6 +263,17 @@ if __name__ == '__main__':
 
     elif args.type_of_sim == 'convert_pedigree':
         convert_pedigree.convert_pedigree(ped_filepath=args.networkx_file, output_prefix=args.output_prefix)
+
+    elif args.type_of_sim == 'run_single_family_broadening':
+        sim_ped_cmd = f'python scripts/run_single_family_broadening.py -n1 {args.family1} -n2 {args.family2} -pr1 {args.profiles1} -pr2 {args.profiles2}' \
+                      f'-o {args.output_prefix}'
+        subprocess.run(sim_ped_cmd, shell = True)
+
+    elif args.type_of_sim == 'run_full_family_broadening':
+        sim_ped_cmd = f'python scripts/run_full_family_broadening.py -c {args.census_filepath} -y {args.years_to_sample} ' \
+                      f'-mf {args.main_family} -o {args.output_prefix}'
+        print(sim_ped_cmd)
+        subprocess.run(sim_ped_cmd, shell = True)
 
     else:
         exit('No input entered, please use -t to specify the action you want preformed')

@@ -153,7 +153,7 @@ def check_params():
         args.profiles_file = check_and_abs_path(args.profiles_file, raise_error=False)
 
     elif args.type_of_sim == 'filter_vcf':
-        check_output_prefix()
+        check_output_prefix(required=False)
         args.vcf_file = check_and_abs_path(args.vcf_file)
 
     elif args.type_of_sim == 'check_founders':

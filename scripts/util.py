@@ -322,10 +322,11 @@ def filter_vcf_for_slim(vcf_file):
 
     vcf_prefix = vcf_file.split('.')[0]
 
+    # This will remove any non-biallelic SNPs
     shell_cmd = f"bcftools view -m2 -M2 -v snps {vcf_file} -O v -o {vcf_prefix}_tmp_snps.vcf"
     subprocess.run([shell_cmd], shell=True)
 
-    # This will filter any sites that empty, Minor Allel Count == 0
+    # This will filter any sites that empty, Minor Allele Count == 0
     shell_cmd = f"bcftools filter -e 'MAC == 0' {vcf_prefix}_tmp_snps.vcf -O v -o {vcf_prefix}_tmp_rmmac.vcf"
     subprocess.run([shell_cmd], shell=True)
 

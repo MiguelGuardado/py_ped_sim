@@ -63,7 +63,7 @@ def load_args():
     parser.add_argument('-cs', '--chosen_sub', type = str, default = 'empty')
     parser.add_argument('-mo', '--main_family_output_prefix', type=str, default = 'main_family')
     parser.add_argument('-mf', '--main_family')
-
+    
     return parser.parse_args()
 
 
@@ -161,7 +161,7 @@ def check_params():
         args.profiles_file = check_and_abs_path(args.profiles_file, raise_error=False)
 
     elif args.type_of_sim == 'filter_vcf':
-        check_output_prefix()
+        check_output_prefix(required=False)
         args.vcf_file = check_and_abs_path(args.vcf_file)
 
     elif args.type_of_sim == 'check_founders':
@@ -189,7 +189,7 @@ def check_params():
         args.years_to_sample = ' '.join(str(x) for x in args.years_to_sample)
         args.census_filepath = check_and_abs_path(args.census_filepath, raise_error=False) or 'scripts/ipumps_sibship_dist.txt'
         args.networkx_file = check_and_abs_path(args.networkx_file)
-        
+
 
 #MAIN CLASS: this is where the ped_sim code starts.
 if __name__ == '__main__':

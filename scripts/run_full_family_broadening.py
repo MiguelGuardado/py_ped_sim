@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
     #initialize count for file names of joint families
     count = 1
-
+    main_family_filepath = ''
     #create or load in main family
     if user_args.main_family == None or user_args.main_family == 'None':# read in user imput family
         num_gen = 0
@@ -91,30 +91,18 @@ if __name__ == '__main__':
             main_family = nx.read_edgelist(f'{u_mo}.nx', create_using = nx.DiGraph())
             print('main family created')
             num_gen = fam_check_gen(f'{u_mo}_profiles.txt')
+            main_family_filepath = u_mo
 
         num_gen = fam_check_gen(f'{u_mo}_profiles.txt')
         count = count + 1
-
-    elif user_args.main_family: # read in user imput family
+    else: # read in user imput family
         #if user imputs main family, the user must have a profiles file ex. main_family_profiles.txt
         main_family = nx.read_edgelist(u_main_family, create_using = nx.DiGraph())
-
+        main_family_filepath = u_main_family
         # checks if the generation years match the users main family
         if len(main_family) < len(u_years):
             print('Number of generations in submitted family (-mf) does not match number of generations requested (-y)')
             exit()
- 
-    else: #simulate main family with sim_pedigree
-        num_gen = 0
-        while num_gen < len(u_years): #makes sure the simulated main family has the same number of generations as the user imputed generatrions. if less, the main family will be simulated again
-            sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o {u_mo}'
-            subprocess.run(sim_ped_cmd, shell=True)
-            main_family = nx.read_edgelist(f'{u_mo}.nx', create_using = nx.DiGraph())
-            print('main family created')
-            num_gen = fam_check_gen(f'{u_mo}_profiles.txt')
-
-        num_gen = fam_check_gen(f'{u_mo}_profiles.txt')
-        count = count + 1
 
     #find founders in main family
     founders = find_founders(main_family)
@@ -123,11 +111,10 @@ if __name__ == '__main__':
 
     #kill counter to avoid inf loop
     kill = 0
-
     #initialize joint family
     sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o fam0' # -s {input_seed}'
     subprocess.run(sim_ped_cmd, shell=True, capture_output=True)
-    join_cmd = f'python scripts/run_single_family_broadening.py -n1 main_family.nx -n2 fam0.nx -pr1 main_family_profiles.txt -pr2 fam0_profiles.txt -o {u_output} -cf {founders[0]}'
+    join_cmd = f'python scripts/run_single_family_broadening.py -n1 {main_family_filepath}.nx -n2 fam0.nx -pr1 {main_family_filepath}_profiles.txt -pr2 fam0_profiles.txt -o {u_output} -cf {founders[0]}'
     
     # records errorcode in case family_broadening fails to connect main family and joint family. if an error occurs, new family is created 
     errorcode = subprocess.run(join_cmd, shell=True, capture_output=True)
@@ -139,9 +126,9 @@ if __name__ == '__main__':
         subprocess.run(sim_ped_cmd, shell=True, capture_output=True)
         if user_args.main_family:
             mf = u_main_family.replace('.nx','')
-            join_cmd = f'python scripts/run_single_family_broadening.py -n1 {mf}.nx -n2 fam0.nx -pr1 {mf}_profiles.txt -pr2 fam0_profiles.txt -o {u_output} -cf {founders[0]}'
+            join_cmd = f'python scripts/run_single_family_broadening.py -cf {founders[0]} -n1 {mf}.nx -n2 fam0.nx -pr1 {mf}_profiles.txt -pr2 fam0_profiles.txt -o {u_output}'
         else:
-            join_cmd = f'python scripts/run_single_family_broadening.py -n1 main_family.nx -n2 fam0.nx -pr1 main_family_profiles.txt -pr2 fam0_profiles.txt -o {u_output} -cf {founders[0]}'
+            join_cmd = f'python scripts/run_single_family_broadening.py  -cf {founders[0]} -n1 {main_family_filepath}.nx -n2 fam0.nx -pr1 {main_family_filepath}_profiles.txt -pr2 fam0_profiles.txt -o {u_output}'
             
         errorcode = subprocess.run(join_cmd, shell=True, capture_output=True)
 
@@ -150,8 +137,7 @@ if __name__ == '__main__':
         if kill == 10:
             python = sys.executable
             os.execl(python, python, *sys.argv)
-    print(f'connection successful for joint family at founder', founders[0])
-    
+
     # loops throught the remaining founders, simulates families then attaches to main family
     # we do this so that we can mainting the origional main family
     count=1
@@ -180,3 +166,4 @@ if __name__ == '__main__':
     # remove initial joint family
     os.remove(f"fam0.nx")
     os.remove(f"fam0_profiles.txt")
+    os.remove(f"relabled_fam.nx")

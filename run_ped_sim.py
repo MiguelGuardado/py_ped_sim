@@ -102,7 +102,7 @@ def check_and_abs_path(file_path, raise_error=True):
         return os.path.abspath(file_path)
     return file_path
 
-def check_output_prefix(required=True):
+def check_output_prefix(required=True, family_broadening=False):
     """Helper function to check if output_prefix is required and convert to absolute path."""
     if required:
         if not args.output_prefix:
@@ -111,6 +111,14 @@ def check_output_prefix(required=True):
     elif args.output_prefix:
         # If optional and provided, convert to absolute path
         args.output_prefix = os.path.abspath(args.output_prefix)
+
+    # This code will evaluate the main family output prefix found in run_family_broadening_full
+    if family_broadening:
+        if not args.main_family_output_prefix:
+            raise ValueError("Output prefix is required but not provided.")
+        args.main_family_output_prefix = os.path.abspath(args.main_family_output_prefix)
+
+
 
 def check_params():
     """
@@ -189,6 +197,10 @@ def check_params():
         args.years_to_sample = ' '.join(str(x) for x in args.years_to_sample)
         args.census_filepath = check_and_abs_path(args.census_filepath, raise_error=False) or 'scripts/ipumps_sibship_dist.txt'
         args.networkx_file = check_and_abs_path(args.networkx_file)
+        print(args.main_family)
+        args.main_family = check_and_abs_path(args.main_family)
+        print(args.main_family)
+        check_output_prefix(args.main_family_output_prefix, family_broadening=True)
 
 
 #MAIN CLASS: this is where the ped_sim code starts.
@@ -265,15 +277,14 @@ if __name__ == '__main__':
         convert_pedigree.convert_pedigree(ped_filepath=args.networkx_file, output_prefix=args.output_prefix)
 
     elif args.type_of_sim == 'run_single_family_broadening':
-        sim_ped_cmd = f'python scripts/run_single_family_broadening.py -n1 {args.family1} -n2 {args.family2} -pr1 {args.profiles1} -pr2 {args.profiles2}' \
+        fb_cmd = f'python scripts/run_single_family_broadening.py -n1 {args.family1} -n2 {args.family2} -pr1 {args.profiles1} -pr2 {args.profiles2}' \
                       f'-o {args.output_prefix}'
-        subprocess.run(sim_ped_cmd, shell = True)
+        subprocess.run([fb_cmd], shell = True)
 
     elif args.type_of_sim == 'run_full_family_broadening':
-        sim_ped_cmd = f'python scripts/run_full_family_broadening.py -c {args.census_filepath} -y {args.years_to_sample} ' \
-                      f'-mf {args.main_family} -o {args.output_prefix}'
-        print(sim_ped_cmd)
-        subprocess.run(sim_ped_cmd, shell = True)
+        fb_cmd = f'python scripts/run_full_family_broadening.py -c {args.census_filepath} -y {args.years_to_sample} ' \
+                      f'-mf {args.main_family} -mo {args.main_family_output_prefix} -o {args.output_prefix}'
+        subprocess.run([fb_cmd], shell = True)
 
     else:
         exit('No input entered, please use -t to specify the action you want preformed')

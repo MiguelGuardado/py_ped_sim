@@ -327,41 +327,50 @@ def filter_vcf_for_slim(vcf_file, output_prefix=False):
 
     # This will remove any non-biallelic SNPs
     shell_cmd = f"bcftools view -m2 -M2 -v snps {vcf_file} -O v -o {vcf_prefix}_tmp_snps.vcf"
+    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # This will filter any sites that empty, Minor Allele Count == 0
     shell_cmd = f"bcftools filter -e 'MAC == 0' {vcf_prefix}_tmp_snps.vcf -O v -o {vcf_prefix}_tmp_rmmac.vcf"
+    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # This will remove potential situation of triallelic SNPs (same pos with diff alt alleles)
     shell_cmd = f"bcftools norm -d snps {vcf_prefix}_tmp_rmmac.vcf -O v -o {vcf_prefix}_tmp_only_snps.vcf"
+    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # Extract a list of each snps infomration for ancestral allele info correction
     shell_cmd = f"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%REF\n' {vcf_prefix}_tmp_only_snps.vcf | bgzip -c > {vcf_prefix}_annot.txt.gz"
+    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # Index the annotated file
     shell_cmd = f"tabix -s1 -b2 -e2 {vcf_prefix}_annot.txt.gz"
+    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # Get header from VCF to add AA info tag
     reheader_cmd = f'bcftools view -h {vcf_prefix}_tmp_only_snps.vcf > {vcf_prefix}_annots.hdr'
+    print(reheader_cmd)
     subprocess.run([reheader_cmd], shell=True)
 
     # Add AA tag on the INFO column
     awk_cmd = r"""'/^#CHROM/ { printf("##INFO=<ID=AA,Number=A,Type=String,Description=\"Ancestral Allele\">\n");} {print;}'"""
     cmd = f"awk {awk_cmd} {vcf_prefix}_annots.hdr > {vcf_prefix}_annots_waa_info.hdr"
+    print(cmd)
     subprocess.run([cmd], shell=True)
 
     ## Add header to vcf file
     reheader_cmd = f"bcftools reheader -h {vcf_prefix}_annots_waa_info.hdr {vcf_prefix}_tmp_only_snps.vcf -o {vcf_prefix}_tmp_only_snps_winfo.vcf"
+    print(reheader_cmd)
     subprocess.run([reheader_cmd], shell=True)
 
     # Annotate the AA column and output vcf file to the self.founder_vcf_filepath variable
 
     shell_cmd = f"bcftools annotate -a {vcf_prefix}_annot.txt.gz -c CHROM,POS,REF,ALT,INFO/AA " \
                 f"{vcf_prefix}_tmp_only_snps_winfo.vcf -O z -o {vcf_prefix}_slim_fil.vcf.gz"
+    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # This last command will remove temporary files that were created to annotate the AA columns.

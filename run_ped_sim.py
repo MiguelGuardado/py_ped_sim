@@ -197,9 +197,7 @@ def check_params():
         args.years_to_sample = ' '.join(str(x) for x in args.years_to_sample)
         args.census_filepath = check_and_abs_path(args.census_filepath, raise_error=False) or 'scripts/ipumps_sibship_dist.txt'
         args.networkx_file = check_and_abs_path(args.networkx_file)
-        print(args.main_family)
         args.main_family = check_and_abs_path(args.main_family)
-        print(args.main_family)
         check_output_prefix(args.main_family_output_prefix, family_broadening=True)
 
 
@@ -268,7 +266,8 @@ if __name__ == '__main__':
         util.find_founders(networkx_file=args.networkx_file, shell_output=True)
 
     elif args.type_of_sim == 'filter_vcf':
-        util.filter_vcf_for_slim(vcf_file=args.vcf_file)
+        print(args.output_prefix)
+        util.filter_vcf_for_slim(vcf_file=args.vcf_file, output_prefix=args.output_prefix)
 
     elif args.type_of_sim == 'fill_ped':
         util.fill_ped(networkx_file=args.networkx_file, output_prefix=args.output_prefix)

@@ -300,7 +300,7 @@ def convert_ped_to_networkx(ped_file, output_prefix):
     output_filepath = f'{output_prefix}.nx'
     nx.write_edgelist(networkx_pedigree, f"{output_filepath}")
 
-def filter_vcf_for_slim(vcf_file):
+def filter_vcf_for_slim(vcf_file, output_prefix=False):
     '''
         This method will be called to update the user's inputted vcf file, this file will only be called under certain
         conditions of the vcf file.
@@ -320,7 +320,10 @@ def filter_vcf_for_slim(vcf_file):
     :return:
     '''
 
-    vcf_prefix = vcf_file.split('.')[0]
+    if output_prefix == None:
+        vcf_prefix = vcf_file.split('.')[0]
+    else:
+        vcf_prefix = output_prefix
 
     # This will remove any non-biallelic SNPs
     shell_cmd = f"bcftools view -m2 -M2 -v snps {vcf_file} -O v -o {vcf_prefix}_tmp_snps.vcf"
@@ -356,6 +359,7 @@ def filter_vcf_for_slim(vcf_file):
     subprocess.run([reheader_cmd], shell=True)
 
     # Annotate the AA column and output vcf file to the self.founder_vcf_filepath variable
+
     shell_cmd = f"bcftools annotate -a {vcf_prefix}_annot.txt.gz -c CHROM,POS,REF,ALT,INFO/AA " \
                 f"{vcf_prefix}_tmp_only_snps_winfo.vcf -O z -o {vcf_prefix}_slim_fil.vcf.gz"
     subprocess.run([shell_cmd], shell=True)

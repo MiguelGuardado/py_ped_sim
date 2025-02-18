@@ -78,6 +78,8 @@ def correct_chr_in_vcf(vcf_file, founder_vcf_file):
     :param founder_vcf_file: VCF file that was used to intialize founders
     :return:
     '''
+    vcf_prefix = vcf_file.split('.')[0]
+
     cmd = f"zgrep -A1 '^#CHROM' {founder_vcf_file} | tail -n1 | cut -f1"
 
     p = subprocess.Popen([cmd], stdout=subprocess.PIPE, shell=True)
@@ -87,19 +89,19 @@ def correct_chr_in_vcf(vcf_file, founder_vcf_file):
     chr_name = out.decode('utf-8').strip()
 
     # Create map of chr in SLiM outputted vcf file and new chr name based on founder inputted vcf
-    cmd = f'echo "1 {chr_name}" >> chr_name_conv.txt'
+    cmd = f'echo "1 {chr_name}" >> {vcf_prefix}_chr_name_conv.txt'
     subprocess.run([cmd], shell=True)
 
     # bcftools magic to preform the conversion
-    cmd = f'bcftools annotate --rename-chrs chr_name_conv.txt {vcf_file} -Ov -o tmp.vcf'
+    cmd = f'bcftools annotate --rename-chrs {vcf_prefix}_chr_name_conv.txt {vcf_file} -Ov -o {vcf_prefix}_tmp.vcf'
     subprocess.run([cmd], shell=True)
 
     # mv the tmp output back to the original vcf file name
-    cmd = f'mv tmp.vcf {vcf_file}'
+    cmd = f'mv {vcf_prefix}_tmp.vcf {vcf_file}'
     subprocess.run([cmd], shell=True)
 
     # Remove tmp file created, chr_name_conv.txt
-    rm_cmd = f'rm chr_name_conv.txt'
+    rm_cmd = f'rm {vcf_prefix}_chr_name_conv.txt'
     subprocess.run([rm_cmd], shell=True)
 
 def convert_networkx_to_ped_wprofiles(networkx_file, output_prefix, profiles_file):
@@ -327,50 +329,41 @@ def filter_vcf_for_slim(vcf_file, output_prefix=False):
 
     # This will remove any non-biallelic SNPs
     shell_cmd = f"bcftools view -m2 -M2 -v snps {vcf_file} -O v -o {vcf_prefix}_tmp_snps.vcf"
-    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # This will filter any sites that empty, Minor Allele Count == 0
     shell_cmd = f"bcftools filter -e 'MAC == 0' {vcf_prefix}_tmp_snps.vcf -O v -o {vcf_prefix}_tmp_rmmac.vcf"
-    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # This will remove potential situation of triallelic SNPs (same pos with diff alt alleles)
     shell_cmd = f"bcftools norm -d snps {vcf_prefix}_tmp_rmmac.vcf -O v -o {vcf_prefix}_tmp_only_snps.vcf"
-    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # Extract a list of each snps infomration for ancestral allele info correction
     shell_cmd = f"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%REF\n' {vcf_prefix}_tmp_only_snps.vcf | bgzip -c > {vcf_prefix}_annot.txt.gz"
-    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # Index the annotated file
     shell_cmd = f"tabix -s1 -b2 -e2 {vcf_prefix}_annot.txt.gz"
-    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # Get header from VCF to add AA info tag
     reheader_cmd = f'bcftools view -h {vcf_prefix}_tmp_only_snps.vcf > {vcf_prefix}_annots.hdr'
-    print(reheader_cmd)
     subprocess.run([reheader_cmd], shell=True)
 
     # Add AA tag on the INFO column
     awk_cmd = r"""'/^#CHROM/ { printf("##INFO=<ID=AA,Number=A,Type=String,Description=\"Ancestral Allele\">\n");} {print;}'"""
     cmd = f"awk {awk_cmd} {vcf_prefix}_annots.hdr > {vcf_prefix}_annots_waa_info.hdr"
-    print(cmd)
     subprocess.run([cmd], shell=True)
 
     ## Add header to vcf file
     reheader_cmd = f"bcftools reheader -h {vcf_prefix}_annots_waa_info.hdr {vcf_prefix}_tmp_only_snps.vcf -o {vcf_prefix}_tmp_only_snps_winfo.vcf"
-    print(reheader_cmd)
     subprocess.run([reheader_cmd], shell=True)
 
     # Annotate the AA column and output vcf file to the self.founder_vcf_filepath variable
 
     shell_cmd = f"bcftools annotate -a {vcf_prefix}_annot.txt.gz -c CHROM,POS,REF,ALT,INFO/AA " \
                 f"{vcf_prefix}_tmp_only_snps_winfo.vcf -O z -o {vcf_prefix}_slim_fil.vcf.gz"
-    print(shell_cmd)
     subprocess.run([shell_cmd], shell=True)
 
     # This last command will remove temporary files that were created to annotate the AA columns.
@@ -419,7 +412,6 @@ def find_founders(networkx_file, shell_output=False):
 
     return len(explicit_founders) + len(implicit_founders)
 
-
 def check_fasta(fasta_filepath):
     '''
     This function is created to check the input fasta file required to preform nucleotide specific simulations
@@ -431,12 +423,16 @@ def check_fasta(fasta_filepath):
     :param fasta_filepath: filepath to the fasta file.
     :return:
     '''
+def check_fasta(fasta_filepath):
+    fasta_filepath_out = fasta_filepath.split('.')[0]  # Handle .gz properly
+    fasta_filepath_out = f"{fasta_filepath_out}_cor.fa"
 
-    fasta_filepath_out = fasta_filepath.split('.')[0]
-    fasta_filepath_out = f'{fasta_filepath_out}_cor.fa'
+    # Check if the input file is gzipped
+    if fasta_filepath.endswith(".gz"):
+        cmd = f"zcat {fasta_filepath} | sed '1!s/[^ACGT]/A/g' | awk 'NR==1 {{print; next}} {{print toupper($0)}}' > {fasta_filepath_out}"
+    else:
+        cmd = f"sed '1!s/[^ACGT]/A/g' {fasta_filepath} | awk 'NR==1 {{print; next}} {{print toupper($0)}}' > {fasta_filepath_out}"
 
-    # This command will replace any non ACGT with an A, and then capitalize all nucleotide positions.
-    cmd = f"sed '1!s/[^ACGT]/A/g' {fasta_filepath} | awk 'NR==1 {{print; next}} {{print toupper($0)}}' > {fasta_filepath_out}"
-    subprocess.run([cmd], shell=True)
+    subprocess.run(cmd, shell=True, check=True)
 
     return fasta_filepath_out

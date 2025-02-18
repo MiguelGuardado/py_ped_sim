@@ -275,7 +275,7 @@ This feature will create simulated familes and attach them to non-root founders.
 If suplying with own main family, -y flag needs to exclude root founder generation and include last generation.
 
 ```bash
-python run_ped_sim -t run_full_family_broadening.py -c ipumps_sibship_dist.txt -y 1850 1860 1870
+python run_ped_sim.py -t run_full_family_broadening -y 1850 1860 1870
 ```
 This will simulate a main family then create joint families to connect to non-root founders in the main family.
 

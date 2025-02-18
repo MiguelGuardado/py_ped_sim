@@ -31,27 +31,6 @@ def load_args():
     parser.add_argument('-mf', '--main_family')
     return parser.parse_args()
 
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
-    # Print New Line on Complete
-    if iteration == total: 
-        print()
-
 def fam_check_gen(family):
     '''
     check the family profile and returns the number of generations
@@ -60,20 +39,26 @@ def fam_check_gen(family):
     #list all indiv generations 
     fam = pd.read_csv(f'{family}', sep='\t')
     df = pd.DataFrame(fam)
-    gen = df.Gen.unique()
+    # gen = df.Gen.unique()
 
-    return(len(gen)-1)
+    return len(df['Gen'].unique()) - 1
+    # return(len(gen)-1)
 
 if __name__ == '__main__':
     #load in user arguments
     user_args = load_args()
+
     if user_args.output_prefix == None or user_args.output_prefix == 'None':
         user_args.output_prefix = 'joint_family_output'
+
+
     u_years = user_args.years_to_sample
     u_census = user_args.census_filepath
     u_main_family = user_args.main_family
     u_output = user_args.output_prefix
     u_mo = user_args.main_family_output_prefix
+
+
     #sets up years to run as a terminal command
     years_str = f'-y'
     for i in u_years:
@@ -112,9 +97,9 @@ if __name__ == '__main__':
     #kill counter to avoid inf loop
     kill = 0
     #initialize joint family
-    sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o fam0' # -s {input_seed}'
+    sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o {u_output}_fam0' # -s {input_seed}'
     subprocess.run(sim_ped_cmd, shell=True, capture_output=True)
-    join_cmd = f'python scripts/run_single_family_broadening.py -n1 {main_family_filepath}.nx -n2 fam0.nx -pr1 {main_family_filepath}_profiles.txt -pr2 fam0_profiles.txt -o {u_output} -cf {founders[0]}'
+    join_cmd = f'python scripts/run_single_family_broadening.py -n1 {main_family_filepath}.nx -n2 {u_output}_fam0.nx -pr1 {main_family_filepath}_profiles.txt -pr2 {u_output}_fam0_profiles.txt -o {u_output} -cf {founders[0]}'
     
     # records errorcode in case family_broadening fails to connect main family and joint family. if an error occurs, new family is created 
     errorcode = subprocess.run(join_cmd, shell=True, capture_output=True)
@@ -122,13 +107,13 @@ if __name__ == '__main__':
 
     # checks if the siumulated family is compatible with the main family. if not run again
     while errorcode.returncode == 1:
-        sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o fam0' # -s {input_seed}'
+        sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o {u_output}_fam0' # -s {input_seed}'
         subprocess.run(sim_ped_cmd, shell=True, capture_output=True)
         if user_args.main_family:
             mf = u_main_family.replace('.nx','')
-            join_cmd = f'python scripts/run_single_family_broadening.py -cf {founders[0]} -n1 {mf}.nx -n2 fam0.nx -pr1 {mf}_profiles.txt -pr2 fam0_profiles.txt -o {u_output}'
+            join_cmd = f'python scripts/run_single_family_broadening.py -cf {founders[0]} -n1 {mf}.nx -n2 {u_output}_fam0.nx -pr1 {mf}_profiles.txt -pr2 {u_output}_fam0_profiles.txt -o {u_output}'
         else:
-            join_cmd = f'python scripts/run_single_family_broadening.py  -cf {founders[0]} -n1 {main_family_filepath}.nx -n2 fam0.nx -pr1 {main_family_filepath}_profiles.txt -pr2 fam0_profiles.txt -o {u_output}'
+            join_cmd = f'python scripts/run_single_family_broadening.py  -cf {founders[0]} -n1 {main_family_filepath}.nx -n2 {u_output}_fam0.nx -pr1 {main_family_filepath}_profiles.txt -pr2 {u_output}_fam0_profiles.txt -o {u_output}'
             
         errorcode = subprocess.run(join_cmd, shell=True, capture_output=True)
 
@@ -143,27 +128,27 @@ if __name__ == '__main__':
     count=1
     for i in founders[1:]:
         # create family to join main family
-        sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o fam{count}'
+        sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o {u_output}_fam{count}'
         subprocess.run(sim_ped_cmd, shell=True)
-        join_cmd = f'python scripts/run_single_family_broadening.py -n1 {u_output}.nx -n2 fam{count}.nx -pr1 {u_output}_profiles.txt -pr2 fam{count}_profiles.txt -o {u_output} -cf {i}'
+        join_cmd = f'python scripts/run_single_family_broadening.py -n1 {u_output}.nx -n2 {u_output}_fam{count}.nx -pr1 {u_output}_profiles.txt -pr2 {u_output}_fam{count}_profiles.txt -o {u_output} -cf {i}'
         errorcode = subprocess.run(join_cmd, shell=True, capture_output=True)
         while errorcode.returncode == 1:
-            sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o fam{count}' # -s {input_seed}'
+            sim_ped_cmd = f'python scripts/sim_pedigree.py {years_str} -c {u_census} -o {u_output}_fam{count}' # -s {input_seed}'
             subprocess.run(sim_ped_cmd, shell=True, capture_output=True)
-            join_cmd = f'python scripts/run_single_family_broadening.py -n1 {u_output}.nx -n2 fam{count}.nx -pr1 {u_output}_profiles.txt -pr2 fam{count}_profiles.txt -o {u_output} -cf {i}'
+            join_cmd = f'python scripts/run_single_family_broadening.py -n1 {u_output}.nx -n2 {u_output}_fam{count}.nx -pr1 {u_output}_profiles.txt -pr2 {u_output}_fam{count}_profiles.txt -o {u_output} -cf {i}'
             errorcode = subprocess.run(join_cmd, shell=True, capture_output=True)
             print('creating new fam')
     
         print(f'connection successful for fam{count} at founder', i)
         
         # remove simulated family after joining
-        os.remove(f"fam{count}.nx")
-        os.remove(f"fam{count}_profiles.txt")
+        os.remove(f"{u_output}_fam{count}.nx")
+        os.remove(f"{u_output}_fam{count}_profiles.txt")
 
         #increase count for file name
         count += 1
 
     # remove initial joint family
-    os.remove(f"fam0.nx")
-    os.remove(f"fam0_profiles.txt")
+    os.remove(f"{u_output}_fam0.nx")
+    os.remove(f"{u_output}_fam0_profiles.txt")
     os.remove(f"relabled_fam.nx")

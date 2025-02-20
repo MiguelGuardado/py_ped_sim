@@ -414,24 +414,28 @@ def find_founders(networkx_file, shell_output=False):
 
 def check_fasta(fasta_filepath):
     '''
-    This function is created to check the input fasta file required to preform nucleotide specific simulations
-    within SLiM. SLiM requires that the ancestral sequence be composed of A/C/G/T nucleotides. N's are not
-    considered legal option. This function will find any non A/C/G/T character and sub it to an A.
+        This function is created to check the input fasta file required to preform nucleotide specific simulations
+        within SLiM. SLiM requires that the ancestral sequence be composed of A/C/G/T nucleotides. N's are not
+        considered legal option within SLiM. This function will find any non A/C/G/T character and sub it to an A.
 
-    We will use sed and awk to preform these actions.
+        We will use sed and awk to preform these actions.
 
-    :param fasta_filepath: filepath to the fasta file.
-    :return:
+        We allow flexibility for the user to input compressed/uncompressed outputs. The output will be an uncompressed
+        file.
+
+        :param fasta_filepath: filepath to the fasta file.
+        :return:
     '''
-def check_fasta(fasta_filepath):
+
+
     fasta_filepath_out = fasta_filepath.split('.')[0]  # Handle .gz properly
     fasta_filepath_out = f"{fasta_filepath_out}_cor.fa"
 
     # Check if the input file is gzipped
     if fasta_filepath.endswith(".gz"):
-        cmd = f"zcat {fasta_filepath} | sed '1!s/[^ACGT]/A/g' | awk 'NR==1 {{print; next}} {{print toupper($0)}}' > {fasta_filepath_out}"
+        cmd = f"zcat {fasta_filepath} | awk 'NR==1 {{print; next}} {{print toupper($0)}}' | sed '1!s/[^ACGT]/A/g'  > {fasta_filepath_out}"
     else:
-        cmd = f"sed '1!s/[^ACGT]/A/g' {fasta_filepath} | awk 'NR==1 {{print; next}} {{print toupper($0)}}' > {fasta_filepath_out}"
+        cmd = f"awk 'NR==1 {{print; next}} {{print toupper($0)}}' {fasta_filepath} | sed '1!s/[^ACGT]/A/g' > {fasta_filepath_out}"
 
     subprocess.run(cmd, shell=True, check=True)
 

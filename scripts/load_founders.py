@@ -382,7 +382,7 @@ class load_founders:
         # Non-Nucleotide specific simulation, with implicit founders, and no recombination map
         ################################################################################################################
         if not self.is_nuc_seq and ped_converter.num_implicit > 0 and not self.is_recomb_map:
-            print('Non-Nucleotide specific simulation, no implicit founder, and no recombination map')
+            print('Non-Nucleotide specific simulation, with implicit founder, and no recombination map')
             # Initalize implicit and explicit founders
             self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
 
@@ -400,8 +400,8 @@ class load_founders:
         # Non-Nucleotide specific simulation, no implicit founders, and no recombination map
         ################################################################################################################
         if not self.is_nuc_seq and ped_converter.num_implicit == 0 and not self.is_recomb_map:
-            print('Non-Nucleotide specific simulation, no implicit founder, and recombination map')
-
+            print('Non-Nucleotide specific simulation, no implicit founder, and no recombination map')
+            print('here')
             self.founder_genomes = f"'{self.founder_genomes}'"
 
             subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
@@ -427,6 +427,6 @@ class load_founders:
 
         # #  Now that the simulation is done, we will delete all files not desired by user, feel free to undelete these
         # #  if you want these outputs.
-        rm_cmd = f"rm {self.founder_genomes}* {ped_converter.founder_filepath}" \
-                 f" {self.explicit_founders_vcf_filepath} {self.implicit_founders_vcf_filepath}"
-        subprocess.run([rm_cmd], shell=True)
+        # rm_cmd = f"rm {self.founder_genomes}* {ped_converter.founder_filepath}" \
+        #          f" {self.explicit_founders_vcf_filepath} {self.implicit_founders_vcf_filepath}"
+        # subprocess.run([rm_cmd], shell=True)

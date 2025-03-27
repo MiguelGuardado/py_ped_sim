@@ -336,8 +336,15 @@ def filter_vcf_for_slim(vcf_file, output_prefix=False):
     subprocess.run([shell_cmd], shell=True)
 
     # This will remove potential situation of triallelic SNPs (same pos with diff alt alleles)
-    shell_cmd = f"bcftools norm -d snps {vcf_prefix}_tmp_rmmac.vcf -O v -o {vcf_prefix}_tmp_only_snps.vcf"
-    subprocess.run([shell_cmd], shell=True)
+    get_dup_cmd = f"bcftools query -f '%CHROM\t%POS\n' {vcf_prefix}_tmp_rmmac.vcf  | sort | uniq -d > {vcf_prefix}_dup_snps.txt"
+    subprocess.run([get_dup_cmd], shell=True)
+
+    rm_dup_cmd = f"bcftools view -T ^{vcf_prefix}_dup_snps.txt {vcf_prefix}_tmp_rmmac.vcf -Ov -o {vcf_prefix}_tmp_only_snps.vcf"
+    subprocess.run([rm_dup_cmd], shell=True)
+
+    # This used to be the code to include instances of trilallelic snps
+    # shell_cmd = f"bcftools isec -c all {vcf_prefix}_tmp_rmmac.vcf -O v -o {vcf_prefix}_tmp_only_snps.vcf"
+    # subprocess.run([shell_cmd], shell=True)
 
     # Extract a list of each snps infomration for ancestral allele info correction
     shell_cmd = f"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%REF\n' {vcf_prefix}_tmp_only_snps.vcf | bgzip -c > {vcf_prefix}_annot.txt.gz"
@@ -368,7 +375,7 @@ def filter_vcf_for_slim(vcf_file, output_prefix=False):
 
     # This last command will remove temporary files that were created to annotate the AA columns.
     shell_cmd = f'rm {vcf_prefix}_tmp_only_snps* {vcf_prefix}_annot.txt.* {vcf_prefix}_annots* ' \
-                f'{vcf_prefix}_tmp_snps.vcf {vcf_prefix}_tmp_rmmac.vcf'
+                f'{vcf_prefix}_tmp_snps.vcf {vcf_prefix}_tmp_rmmac.vcf {vcf_prefix}_dup_snps.txt'
     subprocess.run([shell_cmd], shell=True)
 
 

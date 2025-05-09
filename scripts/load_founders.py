@@ -427,6 +427,6 @@ class load_founders:
 
         # #  Now that the simulation is done, we will delete all files not desired by user, feel free to undelete these
         # #  if you want these outputs.
-        # rm_cmd = f"rm {self.founder_genomes}* {ped_converter.founder_filepath}" \
-        #          f" {self.explicit_founders_vcf_filepath} {self.implicit_founders_vcf_filepath}"
-        # subprocess.run([rm_cmd], shell=True)
+        rm_cmd = f"rm {self.founder_genomes}* {ped_converter.founder_filepath}" \
+                 f" {self.explicit_founders_vcf_filepath} {self.implicit_founders_vcf_filepath}"
+        subprocess.run([rm_cmd], shell=True)

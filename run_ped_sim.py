@@ -266,7 +266,6 @@ if __name__ == '__main__':
         util.find_founders(networkx_file=args.networkx_file, shell_output=True)
 
     elif args.type_of_sim == 'filter_vcf':
-        print(args.output_prefix)
         util.filter_vcf_for_slim(vcf_file=args.vcf_file, output_prefix=args.output_prefix)
 
     elif args.type_of_sim == 'fill_ped':

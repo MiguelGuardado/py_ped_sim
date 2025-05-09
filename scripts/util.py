@@ -7,6 +7,7 @@ Recent Update: 10/23/2021
 import networkx as nx
 import pandas as pd
 import numpy as np
+import os
 import subprocess
 from pathlib import Path
 
@@ -67,6 +68,19 @@ def update_vcf_header(vcf_file, fam_graph):
 
         mv_cmd = f'mv {vcf_prefix}_tmp.vcf {vcf_file}'
         subprocess.run([mv_cmd], shell=True)
+
+    #  We will fix the AC column since SLiM will change the AC,Number=./ where we want AC,Number=1
+    cmd = f"""sed 's/^##INFO=<ID=AC,Number=\\.,/##INFO=<ID=AC,Number=A,/' {vcf_file} > {vcf_prefix}_tmp2.vcf"""
+    subprocess.run([cmd], shell=True)
+
+    mv_cmd = f'mv {vcf_prefix}_tmp2.vcf {vcf_file}'
+    subprocess.run([mv_cmd], shell=True)
+
+    # #  We will fix the AA column since SLiM will change the AA,Number=1 where we want AC,Number=A
+    # cmd = f"""sed -i '' 's/^##INFO=<ID=AA,Number=1,/##INFO=<ID=AA,Number=1,/' {vcf_file}"""
+    # subprocess.run(cmd, shell=True)
+
+
 
 def correct_chr_in_vcf(vcf_file, founder_vcf_file):
     '''
@@ -339,7 +353,15 @@ def filter_vcf_for_slim(vcf_file, output_prefix=False):
     get_dup_cmd = f"bcftools query -f '%CHROM\t%POS\n' {vcf_prefix}_tmp_rmmac.vcf  | sort | uniq -d > {vcf_prefix}_dup_snps.txt"
     subprocess.run([get_dup_cmd], shell=True)
 
-    rm_dup_cmd = f"bcftools view -T ^{vcf_prefix}_dup_snps.txt {vcf_prefix}_tmp_rmmac.vcf -Ov -o {vcf_prefix}_tmp_only_snps.vcf"
+    if os.path.getsize(f"{vcf_prefix}_dup_snps.txt") > 0:
+        rm_dup_cmd = f"bcftools view -T ^{vcf_prefix}_dup_snps.txt {vcf_prefix}_tmp_rmmac.vcf -Ov -o {vcf_prefix}_tmp_only_snps.vcf"
+        subprocess.run([rm_dup_cmd], shell=True)
+    else:
+        mv_cmd = f'mv {vcf_prefix}_tmp_rmmac.vcf {vcf_prefix}_tmp_only_snps.vcf'
+        subprocess.run([mv_cmd], shell=True)
+
+    # This will remove any missing snps, which is an annoying filter to apply.
+    rm_dup_cmd = f"bcftools view -i 'F_MISSING == 0' {vcf_prefix}_tmp_only_snps.vcf -Ov -o {vcf_prefix}_tmp_only_snps_missing.vcf"
     subprocess.run([rm_dup_cmd], shell=True)
 
     # This used to be the code to include instances of trilallelic snps
@@ -347,7 +369,7 @@ def filter_vcf_for_slim(vcf_file, output_prefix=False):
     # subprocess.run([shell_cmd], shell=True)
 
     # Extract a list of each snps infomration for ancestral allele info correction
-    shell_cmd = f"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%REF\n' {vcf_prefix}_tmp_only_snps.vcf | bgzip -c > {vcf_prefix}_annot.txt.gz"
+    shell_cmd = f"bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t%REF\n' {vcf_prefix}_tmp_only_snps_missing.vcf | bgzip -c > {vcf_prefix}_annot.txt.gz"
     subprocess.run([shell_cmd], shell=True)
 
     # Index the annotated file
@@ -355,16 +377,15 @@ def filter_vcf_for_slim(vcf_file, output_prefix=False):
     subprocess.run([shell_cmd], shell=True)
 
     # Get header from VCF to add AA info tag
-    reheader_cmd = f'bcftools view -h {vcf_prefix}_tmp_only_snps.vcf > {vcf_prefix}_annots.hdr'
+    reheader_cmd = f'bcftools view -h {vcf_prefix}_tmp_only_snps_missing.vcf > {vcf_prefix}_annots.hdr'
     subprocess.run([reheader_cmd], shell=True)
 
-    # Add AA tag on the INFO column
-    awk_cmd = r"""'/^#CHROM/ { printf("##INFO=<ID=AA,Number=A,Type=String,Description=\"Ancestral Allele\">\n");} {print;}'"""
+    awk_cmd = r"""'/^#CHROM/ { printf("##INFO=<ID=AA,Number=1,Type=String,Description=\"Ancestral Allele\">\n");} {print;}'"""
     cmd = f"awk {awk_cmd} {vcf_prefix}_annots.hdr > {vcf_prefix}_annots_waa_info.hdr"
     subprocess.run([cmd], shell=True)
 
     ## Add header to vcf file
-    reheader_cmd = f"bcftools reheader -h {vcf_prefix}_annots_waa_info.hdr {vcf_prefix}_tmp_only_snps.vcf -o {vcf_prefix}_tmp_only_snps_winfo.vcf"
+    reheader_cmd = f"bcftools reheader -h {vcf_prefix}_annots_waa_info.hdr {vcf_prefix}_tmp_only_snps_missing.vcf -o {vcf_prefix}_tmp_only_snps_winfo.vcf"
     subprocess.run([reheader_cmd], shell=True)
 
     # Annotate the AA column and output vcf file to the self.founder_vcf_filepath variable
@@ -372,6 +393,10 @@ def filter_vcf_for_slim(vcf_file, output_prefix=False):
     shell_cmd = f"bcftools annotate -a {vcf_prefix}_annot.txt.gz -c CHROM,POS,REF,ALT,INFO/AA " \
                 f"{vcf_prefix}_tmp_only_snps_winfo.vcf -O z -o {vcf_prefix}_slim_fil.vcf.gz"
     subprocess.run([shell_cmd], shell=True)
+
+    # Index vcf file
+    index_cmd = f'bcftools index {vcf_prefix}_slim_fil.vcf.gz'
+    subprocess.run([index_cmd], shell=True)
 
     # This last command will remove temporary files that were created to annotate the AA columns.
     shell_cmd = f'rm {vcf_prefix}_tmp_only_snps* {vcf_prefix}_annot.txt.* {vcf_prefix}_annots* ' \

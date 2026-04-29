@@ -25,8 +25,8 @@ initialize() {
  	map = readCSV(recomb_map, c("ends", "rates"), sep=" ");
     ends = map.getValue("ends");
     //(ends);
-    ends = c(ends[1:(size(ends)-1)]-2, genome_length);
-    rates = map.getValue("rates") * 1e-8;
+    ends = c(ends[1:(size(ends)-1)], genome_length);
+    rates = map.getValue("rates");
     initializeRecombinationRate(rates, ends);
 	
 	suppressWarnings(T);	

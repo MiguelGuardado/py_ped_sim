@@ -444,31 +444,68 @@ def find_founders(networkx_file, shell_output=False):
 
     return len(explicit_founders) + len(implicit_founders)
 
-def check_fasta(fasta_filepath):
-    '''
-        This function is created to check the input fasta file required to preform nucleotide specific simulations
-        within SLiM. SLiM requires that the ancestral sequence be composed of A/C/G/T nucleotides. N's are not
-        considered legal option within SLiM. This function will find any non A/C/G/T character and sub it to an A.
+def check_fasta(fasta_filepath, output_prefix):
+    """
+    Cleans FASTA for SLiM (non-ACGT -> A, uppercase).
+    Output file is named based on output_prefix.
+    Always writes an uncompressed .fa file.
+    """
 
-        We will use sed and awk to preform these actions.
+    fasta_filepath_out = f"{output_prefix}_cor.fa"
+    tmp_out = f"{fasta_filepath_out}.tmp"
 
-        We allow flexibility for the user to input compressed/uncompressed outputs. The output will be an uncompressed
-        file.
+    # Quote paths for safety
+    fasta_filepath = os.path.abspath(fasta_filepath)
+    fasta_filepath_out = os.path.abspath(fasta_filepath_out)
+    tmp_out = os.path.abspath(tmp_out)
 
-        :param fasta_filepath: filepath to the fasta file.
-        :return:
-    '''
-
-
-    fasta_filepath_out = fasta_filepath.split('.')[0]  # Handle .gz properly
-    fasta_filepath_out = f"{fasta_filepath_out}_cor.fa"
-
-    # Check if the input file is gzipped
     if fasta_filepath.endswith(".gz"):
-        cmd = f"zcat {fasta_filepath} | awk 'NR==1 {{print; next}} {{print toupper($0)}}' | sed '1!s/[^ACGT]/A/g'  > {fasta_filepath_out}"
+        cmd = (
+            f"zcat {fasta_filepath} | "
+            "awk 'NR==1 {print; next} {print toupper($0)}' | "
+            "sed '1!s/[^ACGT]/A/g' "
+            f"> {tmp_out}"
+        )
     else:
-        cmd = f"awk 'NR==1 {{print; next}} {{print toupper($0)}}' {fasta_filepath} | sed '1!s/[^ACGT]/A/g' > {fasta_filepath_out}"
+        cmd = (
+            "awk 'NR==1 {print; next} {print toupper($0)}' "
+            f"{fasta_filepath} | "
+            "sed '1!s/[^ACGT]/A/g' "
+            f"> {tmp_out}"
+        )
 
     subprocess.run(cmd, shell=True, check=True)
 
+    # Atomic move prevents other jobs from seeing partial file
+    os.replace(tmp_out, fasta_filepath_out)
+
     return fasta_filepath_out
+
+# def check_fasta(fasta_filepath):
+#     '''
+#         This function is created to check the input fasta file required to preform nucleotide specific simulations
+#         within SLiM. SLiM requires that the ancestral sequence be composed of A/C/G/T nucleotides. N's are not
+#         considered legal option within SLiM. This function will find any non A/C/G/T character and sub it to an A.
+
+#         We will use sed and awk to preform these actions.
+
+#         We allow flexibility for the user to input compressed/uncompressed outputs. The output will be an uncompressed
+#         file.
+
+#         :param fasta_filepath: filepath to the fasta file.
+#         :return:
+#     '''
+
+
+#     fasta_filepath_out = fasta_filepath.split('.')[0]  # Handle .gz properly
+#     fasta_filepath_out = f"{fasta_filepath_out}_cor.fa"
+
+#     # Check if the input file is gzipped
+#     if fasta_filepath.endswith(".gz"):
+#         cmd = f"zcat {fasta_filepath} | awk 'NR==1 {{print; next}} {{print toupper($0)}}' | sed '1!s/[^ACGT]/A/g'  > {fasta_filepath_out}"
+#     else:
+#         cmd = f"awk 'NR==1 {{print; next}} {{print toupper($0)}}' {fasta_filepath} | sed '1!s/[^ACGT]/A/g' > {fasta_filepath_out}"
+
+#     subprocess.run(cmd, shell=True, check=True)
+
+#     return fasta_filepath_out

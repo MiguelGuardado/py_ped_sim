@@ -173,7 +173,6 @@ def check_params():
         args.vcf_file = check_and_abs_path(args.vcf_file)
 
     elif args.type_of_sim == 'check_founders':
-        check_output_prefix()
         args.networkx_file = check_and_abs_path(args.networkx_file)
 
     elif args.type_of_sim == 'fill_ped':

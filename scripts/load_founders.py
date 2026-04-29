@@ -74,14 +74,18 @@ class load_founders:
         :return:
         self.founder_genomes - initally assigned to the sample subset of the vcf file that is inputted by the user.
         """
+        rng = np.random.default_rng(seed=self.seed_number)
+
         sample_query_cmd = f"bcftools query -l {self.vcf_file} > {self.output_prefix}_sample_id.txt"
         subprocess.run([sample_query_cmd], shell=True)
 
         #  Load in generated list into python
         present_sampleid = np.loadtxt(f'{self.output_prefix}_sample_id.txt', dtype='str')
-        founder_samples = np.random.choice(present_sampleid, self.num_founder, replace=False)
+        founder_samples = rng.choice(present_sampleid, self.num_founder, replace=False)
         np.savetxt(f'{self.output_prefix}_founder_sampleid.txt', founder_samples, fmt='%s')
 
+        print('SampleIDs of the founders selected for the simulation')
+        print(founder_samples)
 
         self.founder_genomes = f'{self.output_prefix}_founder_genomes.vcf'
         subset_vcf_cmd = f'bcftools view -S {self.output_prefix}_founder_sampleid.txt {self.vcf_file} ' \
@@ -237,7 +241,7 @@ class load_founders:
             self.split_founders(self.founder_genomes, ped_converter.num_explicit, ped_converter.num_implicit)
 
             # Correct fasta and add notation for SLiM
-            self.fasta_file = util.check_fasta(self.fasta_file)
+            self.fasta_file = util.check_fasta(self.fasta_file, self.output_prefix)
             self.fasta_file = f"'{self.fasta_file}'"
             self.recomb_map = f"'{self.recomb_map}'"
 
@@ -261,20 +265,10 @@ class load_founders:
 
 
             # Correct fasta and add notation for SLiM
-            self.fasta_file = util.check_fasta(self.fasta_file)
+            self.fasta_file = util.check_fasta(self.fasta_file, self.output_prefix)
             self.fasta_file = f"'{self.fasta_file}'"
             self.founder_genomes = f"'{self.founder_genomes}'"
             self.recomb_map = f"'{self.recomb_map}'"
-
-            print(f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
-                            f' -d founder_filepath="{ped_converter.founder_filepath}"'
-                            f' -d exp_founder_vcf_filepath="{self.founder_genomes}"'
-                            f' -d genome_length="{self.genome_length}"'
-                            f' -d mu_rate="{self.mutation_rate}"'
-                            f' -d recomb_map="{self.recomb_map}"'
-                            f' -s {self.seed_number}'
-                            f' -d fasta_file="{self.fasta_file}"'
-                            f' -d output_filename="{self.output_vcf}" scripts/simulate_pedigree_wnuc_wrecomb.slim')
 
             # Run SLiM Command
             subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
@@ -344,7 +338,7 @@ class load_founders:
 
             self.founder_genomes = f"'{self.founder_genomes}'"
 
-            self.fasta_file = util.check_fasta(self.fasta_file)
+            self.fasta_file = util.check_fasta(self.fasta_file, self.output_prefix)
             self.fasta_file = f"'{self.fasta_file}'"
 
             subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
@@ -365,7 +359,7 @@ class load_founders:
 
             self.founder_genomes = f"'{self.founder_genomes}'"
 
-            self.fasta_file = util.check_fasta(self.fasta_file)
+            self.fasta_file = util.check_fasta(self.fasta_file, self.output_prefix)
             self.fasta_file = f"'{self.fasta_file}'"
 
             subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
@@ -401,7 +395,6 @@ class load_founders:
         ################################################################################################################
         if not self.is_nuc_seq and ped_converter.num_implicit == 0 and not self.is_recomb_map:
             print('Non-Nucleotide specific simulation, no implicit founder, and no recombination map')
-            print('here')
             self.founder_genomes = f"'{self.founder_genomes}'"
 
             subprocess.run([f'slim -d pedigree_filepath="{ped_converter.slim_filepath}"'
@@ -428,5 +421,5 @@ class load_founders:
         # #  Now that the simulation is done, we will delete all files not desired by user, feel free to undelete these
         # #  if you want these outputs.
         rm_cmd = f"rm {self.founder_genomes}* {ped_converter.founder_filepath}" \
-                 f" {self.explicit_founders_vcf_filepath} {self.implicit_founders_vcf_filepath}"
+                 f" {self.explicit_founders_vcf_filepath} {self.implicit_founders_vcf_filepath} {self.output_prefix}_cor.fa"
         subprocess.run([rm_cmd], shell=True)

@@ -192,12 +192,10 @@ def check_params():
         args.profile2 = check_and_abs_path(args.profile2)
 
     elif args.type_of_sim == 'run_full_family_broadening':
-        check_output_prefix(required=False)
         args.years_to_sample = ' '.join(str(x) for x in args.years_to_sample)
         args.census_filepath = check_and_abs_path(args.census_filepath, raise_error=False) or 'scripts/ipumps_sibship_dist.txt'
         args.networkx_file = check_and_abs_path(args.networkx_file)
         args.main_family = check_and_abs_path(args.main_family)
-        check_output_prefix(args.main_family_output_prefix, family_broadening=True)
 
 
 #MAIN CLASS: this is where the ped_sim code starts.

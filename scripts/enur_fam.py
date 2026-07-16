@@ -4,11 +4,11 @@ import pandas as pd
 import argparse
 
 relationship_code = {
-    '1_1_direct':'Parent Child',
-    '2_2_direct':'Grandparent',
-    '3_3_direct':'Great Grandparent',
-    '4_4_direct':'Great Great Grandparent',
-    '5_5_direct':'Great Great Great Grandparent',
+    '1_1_direct': 'Parent Child',
+    '2_2_direct': 'Grandparent',
+    '3_3_direct': 'Great Grandparent',
+    '4_4_direct': 'Great Great Grandparent',
+    '5_5_direct': 'Great Great Great Grandparent',
     '0_2_full': 'Full sibling',
     '0_4_full': 'Full First Cousin',
     '0_6_full': 'Full Second Cousin',
@@ -32,240 +32,126 @@ relationship_code = {
     '0_6_unknown': 'Unknown Second Cousin'}
 
 
-def find_rt(node1, node2, mrcas):
-    global G_undir
-    global true_half
+def find_relationship(gen, mc, rt):
+    '''Map the (generation_depth, meiosis_count, relationship_type) triple to a
+    named relationship, or 'N/A' if the combination is not catalogued.'''
+    return relationship_code.get(f'{gen}_{mc}_{rt}', 'N/A')
+
+
+def build_ancestor_distances(G):
     '''
-    This function will determine the relationtype for a pair of individuals who share a common ancestor but are not
-    considered direct connections.
-
-    :param G:
-    :param node1:
-    :param node2:
-    :return:
-    '''
-    # Returns all the shortest paths between a pair of two individuals
-    # sp = list(nx.all_shortest_paths(G_undir, node1, node2))
-
-    if len(mrcas) == 2:
-        return 'full'
-
-    elif len(mrcas) == 1:
-        if true_half:
-            pass
-
-        return 'half'
-    elif len(mrcas) > 0:
-        print('MORE THAN 2 MRCAs ARE FOUND, CHECK WHY THIS IS HAPPENING ?')
-        print(f' Indiv 1: {node1}, Indiv 2: {node2}, MRCAs: {mrcas}')
-        return 'N/A'
-    else:
-        return 'N/A'
-
-def find_com_anc(G, node1, node2):
-    '''
-    Code block given to me by ChatGPT, very kind of them.
-    :param G: Graph to use to find the most recent common ancestor
-    :param node1: Individual 1
-    :param node2: Individual 2
-    :return: most recent common ancestor between a set of two nodes.
-    '''
-    try:
-        # Find the set of ancestors for both nodes
-        ancestors1 = list(nx.ancestors(G, node1))
-        ancestors2 = list(nx.ancestors(G, node2))
-
-        ancestors1.append(node1)
-        ancestors2.append(node2)
-
-        # print(ancestors1)
-        # print(ancestors2)
-        # Find the intersection of the two sets to find the common ancestors
-        common_ancestors = np.intersect1d(ancestors1, ancestors2)
-        # print(common_ancestors)
-        if len(common_ancestors) > 0:
-            # mrca is taking a long time so we can just instead look at the first intersecting ancestor.
-            #mrca = find_most_recent_common_ancestor(G, node1, node2, common_ancestors)
-            mrca = nx.lowest_common_ancestor(G, node1, node2)
-            # print(mrca)
-            #return mrca
-            return mrca[0]
-        else:
-            return None
-    except nx.NetworkXNoPath:
-        return None
-
-def find_lowest_common_ancestors(G, indiv1, indiv2):
-    """
-    Find the lowest common ancestor in the directed, acyclic graph of node a and b.
-    The LCA is defined as on. Algorithim made from stack overflow user (Paul Brodersen) Thanks!
-
-    @reference:
-    https://en.wikipedia.org/wiki/Lowest_common_ancestor
-    https://stackoverflow.com/questions/39946894/all-lowest-common-ancestor-with-networkx
-
-    Notes:
-    ------
-    This definition is the opposite of the term as it is used e.g. in biology!
-
-    Arguments:
-    ----------
-        graph: networkx.DiGraph instance
-            directed, acyclic, graph
-
-        a, b:
-            node IDs
+    Precompute, once per node, the meiosis distance UP to every ancestor
+    (including the node itself at distance 0). One BFS per node on the reversed
+    graph replaces the per-pair ancestor/shortest-path traversals the original
+    performed for every one of the O(n^2) pairs.
 
     Returns:
-    --------
-        lca: [node 1, ..., node n]
-            list of lowest common ancestor nodes (can be more than one)
-    """
-
-    assert nx.is_directed_acyclic_graph(G), "Graph has to be acyclic and directed."
-
-    # get ancestors of both (intersection)
-    ancestors1 = list(nx.ancestors(G, indiv1))
-    ancestors2 = list(nx.ancestors(G, indiv2))
-
-    ancestors1.append(indiv1)
-    ancestors2.append(indiv2)
+        up  : {node: {ancestor: distance}}   distance = # edges ancestor -> node
+    '''
+    G_rev = G.reverse(copy=False)
+    return {n: nx.single_source_shortest_path_length(G_rev, n) for n in G}
 
 
-    # Find the intersection of the two sets to find the common ancestors
-    common_ancestors = np.intersect1d(ancestors1, ancestors2)
-
-    # print(common_ancestors)
-
-    if len(common_ancestors) > 0:
-
-        # get sum of path lengths
-        sum_of_path_lengths = np.zeros((len(common_ancestors)))
-        for ii, c in enumerate(common_ancestors):
-            sum_of_path_lengths[ii] = nx.shortest_path_length(G, c, indiv1) \
-                                      + nx.shortest_path_length(G, c, indiv2)
+def relationship_type(n_mrcas):
+    '''Two shared lowest common ancestors -> full, one -> half. Three or more
+    indicates a consanguinity loop the catalogue does not model.'''
+    if n_mrcas == 2:
+        return 'full'
+    if n_mrcas == 1:
+        return 'half'
+    return 'N/A'
 
 
-    # return minima
-        minima, = np.where(sum_of_path_lengths == np.min(sum_of_path_lengths))
+def classify_pair(node1, node2, d1, d2):
+    '''
+    Determine the relationship record for one ordered pair using only the
+    precomputed ancestor->distance maps d1 (for node1) and d2 (for node2).
+    Returns a row [Fam_ID, ID1, ID2, MC, GD, RT, RC] or None if unrelated.
+    '''
+    # Direct line: one individual is an ancestor of the other. Checked first so
+    # ancestor/descendant pairs are labelled 'direct' (matches the original's
+    # has_path precedence over the common-ancestor branch).
+    if node1 in d2:            # node1 is an ancestor of node2
+        dist = d2[node1]
+        return ['1', node1, node2, dist, dist, 'direct',
+                find_relationship(dist, dist, 'direct')]
+    if node2 in d1:            # node2 is an ancestor of node1
+        dist = d1[node2]
+        return ['1', node1, node2, dist, dist, 'direct',
+                find_relationship(dist, dist, 'direct')]
 
-        return [common_ancestors[ii] for ii in minima]
-    else:
+    # Otherwise look for common ancestors. Sorting the intersection reproduces
+    # the original's np.intersect1d ordering, so ties pick the same MRCA.
+    common = sorted(d1.keys() & d2.keys())
+    if not common:
         return None
 
-def find_mc_with_ca(G, node1, node2, com_anc):
-    node1_path = nx.shortest_path(G, com_anc, node1)
-    node2_path = nx.shortest_path(G, com_anc, node2)
+    sums = {c: d1[c] + d2[c] for c in common}
+    best = min(sums.values())
+    mrcas = [c for c in common if sums[c] == best]
+    mrca = mrcas[0]
 
-    node1_path_fil = np.setdiff1d(node1_path, node2_path)
-    node2_path_fil = np.setdiff1d(node2_path, node1_path)
+    meioses_count = d1[mrca] + d2[mrca]
+    generation_depth = abs(d1[mrca] - d2[mrca])
+    rt = relationship_type(len(mrcas))
+    rc = find_relationship(generation_depth, meioses_count, rt)
+    return ['1', node1, node2, meioses_count, generation_depth, rt, rc]
 
-    # print('node 1 path ', node1_path_fil)
-    # print('node 2 path ', node2_path_fil)
-
-    # if len(node1_path) == len(node2_path):
-    #     mc = len(node1_path) + len(node2_path)
-    # else:
-    #     mc = len(np.setdiff1d(node1_path, node2_path)) + len(np.setdiff1d(node2_path, node1_path))
-
-    return len(node1_path_fil) + len(node2_path_fil)
-
-def find_relationship(gen, mc, rt):
-    rc = f'{gen}_{mc}_{rt}'
-    if rc in relationship_code.keys():
-        return relationship_code[rc]
-    else:
-        return 'N/A'
 
 def find_pairwise_relationships(G, output_prefix, sample_file=None):
-    relationships = []
+    assert nx.is_directed_acyclic_graph(G), 'Graph has to be acyclic and directed.'
+
+    up = build_ancestor_distances(G)
+
+    # weakly-connected component id per node: relationships only exist within a
+    # component, so cross-component pairs are skipped without any ancestor work.
+    comp_id = {}
+    for cid, comp in enumerate(nx.weakly_connected_components(G)):
+        for node in comp:
+            comp_id[node] = cid
 
     family_list = list(G)
     family_list.sort(key=int)
 
     if sample_file is not None:
-        fam_list_1 = sample_file
+        fam_list_1 = list(np.atleast_1d(sample_file))
     else:
         fam_list_1 = family_list
 
-    node_index = 0
-    for node1 in fam_list_1:
-        if sample_file is not None:
-            fam_list_2 = family_list
-        else:
-            fam_list_2 = family_list[node_index + 1:]
+    relationships = []
+    for node_index, node1 in enumerate(fam_list_1):
+        # sample mode compares each sampled node against everyone; default mode
+        # walks the upper triangle to avoid duplicate (a,b)/(b,a) rows.
+        fam_list_2 = family_list if sample_file is not None else family_list[node_index + 1:]
+        d1 = up[node1]
 
         for node2 in fam_list_2:
-            if node1 == node2:
+            if node1 == node2 or comp_id[node1] != comp_id[node2]:
                 continue
+            row = classify_pair(node1, node2, d1, up[node2])
+            if row is not None:
+                relationships.append(row)
 
-            # Function to return a single most recent common ancestor(mrca) between two individuals.
-            #ca = find_com_anc(G, node1, node2)
-            mrcas = find_lowest_common_ancestors(G, node1, node2)
-            #print(f"Indiv1 : {node1}, Indiv2: {node2}, MRCA:{mrca}")
+    output_df = pd.DataFrame(relationships,
+                             columns=['Fam_ID', 'ID1', 'ID2', 'MC', 'GD', 'RT', 'RC'])
+    output_df.to_csv(f'{output_prefix}_rel.csv', index=False)
 
-            if nx.has_path(G, node1, node2):
-                # In this case, if a path exsist between two nodes in a graph then are a direct connection between these members.
-                path = nx.shortest_path(G, node1, node2)
-                meioses_count = len(path) - 1
-                generation_depth = nx.shortest_path_length(G, node1, node2)
-                rc = find_relationship(generation_depth, meioses_count, 'direct')
-                relationships.append(['1', node1, node2, meioses_count, generation_depth, 'direct', rc])
-
-            elif nx.has_path(G, node2, node1):
-                # In this case, if a path exsist between two nodes in a graph then are a direct connection between these members.
-                path = nx.shortest_path(G, node2, node1)
-                meioses_count = len(path) - 1
-                generation_depth = nx.shortest_path_length(G, node2, node1)
-
-                rc = find_relationship(generation_depth, meioses_count, 'direct')
-                relationships.append(['1', node1, node2, meioses_count, generation_depth, 'direct', rc])
-
-            elif mrcas is not None:
-                # If a common ancestor exist, then there is at least one common ancestor between a pair of two nodes.
-                mrca = mrcas[0]
-                #meioses_count = nx.shortest_path_length(G, mrca, node1) + nx.shortest_path_length(G, mrca, node2)
-                meioses_count = find_mc_with_ca(G, node1, node2, mrca)
-                generation_depth = np.abs(nx.shortest_path_length(G, mrca, node1) - nx.shortest_path_length(G, mrca, node2))
-                rt = find_rt(node1, node2, mrcas)
-                rc = find_relationship(generation_depth, meioses_count, rt)
-                relationships.append(['1', node1, node2, meioses_count, generation_depth, rt, rc])
-
-            else:
-                continue
-
-
-        # Index to keep track of upper triangle of pairwise individuals in family_list
-        node_index+=1
-
-    # Convert list of pairwise relationships statistics into pandas dataframe to output.
-    output_df = pd.DataFrame(relationships, columns=['Fam_ID', 'ID1', 'ID2', 'MC', 'GD', 'RT', "RC"])
-    output_fn = f"{output_prefix}_rel.csv"
-    output_df.to_csv(output_fn, index=False)
 
 if __name__ == '__main__':
-
-    # Load in command line user inputs
     parser = argparse.ArgumentParser()
     parser.add_argument('-n', '--networkx_file', type=str, required=True)
     parser.add_argument('-sf', '--sample_file', type=str)
     parser.add_argument('-o', '--output_prefix', type=str, required=False, default=None)
-    parser.add_argument('-t', '--true_half', type=bool, default=False)
+    parser.add_argument('-t', '--true_half', action='store_true',
+                        help='reserved: distinguish true half-sibs from single-known-ancestor pairs')
     user_args = parser.parse_args()
 
-    if user_args.output_prefix == None or user_args.sample_file=='None':
+    if user_args.output_prefix in (None, 'None'):
         user_args.output_prefix = user_args.networkx_file.split('.nx')[0]
 
-    # We convert true_half into a variable so we can make it a global variable for find_rt() to read in.
-    true_half = user_args.true_half
-
-    # Read in family pedigree represented as a directed acyclic graph
     fam_graph = nx.read_edgelist(user_args.networkx_file, create_using=nx.DiGraph())
-    G_undir = fam_graph.to_undirected()
 
-    print(user_args.sample_file)
-    if user_args.sample_file is None or user_args.sample_file=='None':
-        # Feed into function to determine relationships statistics for the family pedigrees
+    if user_args.sample_file in (None, 'None'):
         find_pairwise_relationships(fam_graph, output_prefix=user_args.output_prefix)
     else:
         sample_file = np.loadtxt(user_args.sample_file, dtype=str)

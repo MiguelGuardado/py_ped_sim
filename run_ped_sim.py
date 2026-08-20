@@ -17,6 +17,26 @@ from scripts import load_founders_exact
 
 parser = argparse.ArgumentParser()
 
+
+def str2bool(value):
+    """
+    Parse a True/False command-line value.
+
+    argparse's `type=bool` CANNOT be used for this: it simply calls bool() on the
+    raw string, and every non-empty string is truthy -- so `-k False` evaluates to
+    bool('False') == True and silently turns the flag ON. This converter compares
+    the text instead.
+    """
+    if isinstance(value, bool):
+        return value
+    v = str(value).strip().lower()
+    if v in ('true', 't', 'yes', 'y', '1'):
+        return True
+    if v in ('false', 'f', 'no', 'n', '0', 'none', ''):
+        return False
+    raise argparse.ArgumentTypeError(f"expected True or False, got '{value}'")
+
+
 def load_args():
     """
     This function is used to read in and initialize the user parameters
@@ -62,6 +82,11 @@ def load_args():
     parser.add_argument('-cf', '--chosen_founder', type = str, default = 'empty')
     parser.add_argument('-cs', '--chosen_sub', type = str, default = 'empty')
     parser.add_argument('-mo', '--main_family_output_prefix', type=str, default = 'main_family')
+    parser.add_argument('-k', '--keep_families', default=False, type=str2bool,
+                            nargs='?', const=True,
+                            help='True/False: keep the simulated satellite families that were '
+                                 'attached to the main family (default False, i.e. delete them '
+                                 'after joining). Bare -k also means True.'),
     parser.add_argument('-mf', '--main_family')
     
     return parser.parse_args()
@@ -278,7 +303,7 @@ if __name__ == '__main__':
 
     elif args.type_of_sim == 'run_full_family_broadening':
         fb_cmd = f'python scripts/run_full_family_broadening.py -c {args.census_filepath} -y {args.years_to_sample} ' \
-                      f'-mf {args.main_family} -mo {args.main_family_output_prefix} -o {args.output_prefix}'
+                      f'-mf {args.main_family} -mo {args.main_family_output_prefix} -o {args.output_prefix} -k {args.keep_families}'
         subprocess.run([fb_cmd], shell = True)
 
     else:
